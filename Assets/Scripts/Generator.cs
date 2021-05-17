@@ -22,27 +22,75 @@ public class Generator : MonoBehaviour
 
   private void Start()
   {
-    Generate();
+    StartGeneration();
     Place();
   }
 
   BitMatrix matrix = new BitMatrix(100);
   List<Room> rooms = new List<Room>();
 
-  public void Generate()
+  public void StartGeneration()
+  {
+    Room newRoom = GenerateRoom();
+    int positionX = Random.Range(0, matrix.size - newRoom.topCorner.x);
+    int positionY = Random.Range(0, matrix.size - newRoom.topCorner.y);
+    newRoom.SetPosition(new Vector2Int(positionX, positionY));
+
+    FillMatrix(newRoom);
+    rooms.Add(newRoom);
+    GenerateRecursivly(newRoom);
+
+  }
+
+  Room GenerateRoom()
   {
     int sizeX = Random.Range(roomDimensionX.x, roomDimensionX.y);
     int sizeY = Random.Range(roomDimensionY.x, roomDimensionY.y);
-    int positionX = Random.Range(0, matrix.size - sizeX);
-    int positionY = Random.Range(0, matrix.size - sizeY);
-    Room newRoom = new Room(new Vector2Int(sizeX, sizeY), new Vector2Int(positionX, positionY));
-    FillMatrix(newRoom);
-    rooms.Add(newRoom);
+    return new Room(new Vector2Int(sizeX, sizeY));
+  }
+
+  float roomProbebility = 1f;
+  void GenerateRecursivly(Room parentRoom)
+  {
+    //if (currentIterration >= iterations) return;
+    //currentIterration++;
+    Stack<Room> newRooms = new Stack<Room>();
+    for (int i = 0; i < 4; i++)
+    {
+      if (Random.Range(0f, 1f) > roomProbebility) continue;
+
+      int axis = (i >> 1) & 1; //if x (axis == 0) or y (axis == 1)
+      int direction = (i & 1) == 1 ? -1 : 1; //if positive or negative
+      int useOffset = (i ^ 1) & 1; //use room size as offset parameter
+
+      Room newRoom = GenerateRoom();
+      Vector2Int minOffset = (parentRoom.size * useOffset) + (newRoom.size * (useOffset ^ 1));
+      int randomOffset = Random.Range(0, 5);
+      Vector2Int axisOffsetVector = new Vector2Int((randomOffset + minOffset.x) * (axis ^ 1), (randomOffset + minOffset.y) * axis);
+      Vector2Int newPos = parentRoom.topCorner + direction * axisOffsetVector;
+
+      newRoom.SetPosition(newPos);
+      if (FillMatrix(newRoom))
+      {
+        newRooms.Push(newRoom);
+        rooms.Add(newRoom);
+      }
+    }
+    roomProbebility -= 0.01f;
+    while (newRooms.Count > 0)
+    {
+      GenerateRecursivly(newRooms.Pop());
+    }
   }
 
   int matrixOffset => matrix.size / 2;
-  void FillMatrix(Room room)
+  bool FillMatrix(Room room)
   {
+    if (room.topCorner.x < 0 || room.topCorner.x + room.size.x > matrix.size - 2) return false;
+    if (room.topCorner.y < 0 || room.topCorner.y + room.size.y > matrix.size - 2) return false;
+
+    if (!CheckIfPositionIsFree(room)) return false;
+
     for (int i = room.topCorner.x; i < room.topCorner.x + room.size.x; i++)
     {
       for (int j = room.topCorner.y; j < room.topCorner.y + room.size.y; j++)
@@ -50,6 +98,19 @@ public class Generator : MonoBehaviour
         matrix.SetValue(i, j, true);
       }
     }
+    return true;
+  }
+
+  private bool CheckIfPositionIsFree(Room room)
+  {
+    for (int i = room.topCorner.x; i < room.topCorner.x + room.size.x; i++)
+    {
+      for (int j = room.topCorner.y; j < room.topCorner.y + room.size.y; j++)
+      {
+        if (matrix.GetValue(i, j)) return false;
+      }
+    }
+    return true;
   }
 
   public void Place()

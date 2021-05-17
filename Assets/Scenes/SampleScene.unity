@@ -133,6 +133,7 @@ GameObject:
   m_Component:
   - component: {fileID: 333698602}
   - component: {fileID: 333698601}
+  - component: {fileID: 333698603}
   m_Layer: 0
   m_Name: Generator
   m_TagString: Untagged
@@ -154,8 +155,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   tileSize: 4
   roomCount: 2
-  roomDimensionX: {x: 0, y: 0}
-  roomDimensionY: {x: 0, y: 0}
+  roomDimensionX: {x: 5, y: 20}
+  roomDimensionY: {x: 5, y: 20}
   groundPrefab: {fileID: 916917378494744782, guid: 98f5378049f9b5745a77677f581b32b1, type: 3}
 --- !u!4 &333698602
 Transform:
@@ -171,6 +172,18 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &333698603
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 333698600}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7378288cefad43747a3fd2b7502accc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
