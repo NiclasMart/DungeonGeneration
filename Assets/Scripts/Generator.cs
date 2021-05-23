@@ -9,8 +9,10 @@ public class Generator : MonoBehaviour
   [SerializeField] int roomCount;
   [SerializeField] Vector2Int roomDimensionX;
   [SerializeField] Vector2Int roomDimensionY;
+  [SerializeField] Vector2Int pathDimensions;
 
   [SerializeField] GameObject groundPrefab;
+  [SerializeField] GameObject debugCube;
 
   float tileOffset;
 
@@ -64,16 +66,48 @@ public class Generator : MonoBehaviour
       int useOffset = (i ^ 1) & 1; //use room size as offset parameter
 
       Room newRoom = GenerateRoom();
+
+      //calculate distance offset parameters
       Vector2Int minOffset = (parentRoom.size * useOffset) + (newRoom.size * (useOffset ^ 1));
-      int randomOffset = Random.Range(0, 5);
-      Vector2Int axisOffsetVector = new Vector2Int((randomOffset + minOffset.x) * (axis ^ 1), (randomOffset + minOffset.y) * axis);
+      int randomDistanceOffset = Random.Range(0, 5);
+      Vector2Int axisOffsetVector = new Vector2Int((randomDistanceOffset + minOffset.x) * (axis ^ 1), (randomDistanceOffset + minOffset.y) * axis);
+
+      //calculate room offset Position
       Vector2Int newPos = parentRoom.topCorner + direction * axisOffsetVector;
+
+      //calculate room shift
+      int xSideOffset = Random.Range(-newRoom.size.x + pathDimensions.y, parentRoom.size.x - pathDimensions.y) * axis;
+      int ySideOffset = Random.Range(-newRoom.size.y + pathDimensions.y, parentRoom.size.y - pathDimensions.y) * (axis ^ 1);
+      Vector2Int randomSideOffset = new Vector2Int(xSideOffset, ySideOffset);
+
+      //calculate final position
+      newPos += randomSideOffset;
 
       newRoom.SetPosition(newPos);
       if (FillMatrix(newRoom))
       {
         newRooms.Push(newRoom);
         rooms.Add(newRoom);
+
+        //calculate path
+        if (randomDistanceOffset == 0) continue;
+        //Vector2Int pathOrigin = parentRoom.topCorner;
+        int testParam = (randomSideOffset.x + randomSideOffset.y) < 0 ? 0 : 1;
+        minOffset.x *= (axis ^ 1);
+        minOffset.y *= axis;
+        // int pathXOffset = Random.Range(0, newRoom.size.x + randomSideOffset.x - pathDimensions.y) * axis;
+        // int pathYOffset = Random.Range(0, newRoom.size.y + randomSideOffset.y - pathDimensions.x) * (axis ^ 1);
+
+        // Vector2Int randomPathOffset = new Vector2Int(pathXOffset, pathYOffset);
+        Vector2Int pathOrigin = parentRoom.topCorner + randomSideOffset * testParam + minOffset * useOffset;// + randomPathOffset;
+
+
+
+        for (int j = 0; j <= randomDistanceOffset; j++)
+        {
+          Vector2Int pathTile = pathOrigin + (direction * new Vector2Int((axis ^ 1), axis) * j);
+          Instantiate(debugCube, new Vector3(pathTile.y * tileSize, 0, pathTile.x * tileSize), Quaternion.identity);
+        }
       }
     }
     roomProbebility -= 0.01f;

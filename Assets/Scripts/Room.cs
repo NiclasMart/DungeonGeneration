@@ -16,7 +16,7 @@ class Room
     this.topCorner = topCorner;
   }
 
-  public Vector2 GetCenter(){
+  public Vector2Int GetCenter(){
     return topCorner + (size/2);
   }
 

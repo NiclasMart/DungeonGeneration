@@ -157,7 +157,9 @@ MonoBehaviour:
   roomCount: 2
   roomDimensionX: {x: 5, y: 20}
   roomDimensionY: {x: 5, y: 20}
+  pathDimensions: {x: 2, y: 2}
   groundPrefab: {fileID: 916917378494744782, guid: 98f5378049f9b5745a77677f581b32b1, type: 3}
+  debugCube: {fileID: 5155054765403287173, guid: d63f8d55a5f1b59409c69b26355509e4, type: 3}
 --- !u!4 &333698602
 Transform:
   m_ObjectHideFlags: 0
