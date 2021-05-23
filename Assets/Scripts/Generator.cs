@@ -13,6 +13,7 @@ public class Generator : MonoBehaviour
   [SerializeField] int pathWidth;
 
   [SerializeField] GameObject groundPrefab;
+  [SerializeField] GameObject wallPrefab;
   [SerializeField] GameObject debugCube;
 
   BitMatrix matrix;
@@ -29,7 +30,7 @@ public class Generator : MonoBehaviour
   private void Start()
   {
     StartGeneration();
-    Place();
+    PlaceFloor();
   }
 
 
@@ -37,11 +38,11 @@ public class Generator : MonoBehaviour
   public void StartGeneration()
   {
     Room newRoom = GenerateRoom();
-    int positionX = Random.Range(0, matrix.size - newRoom.size.x);
-    int positionY = Random.Range(0, matrix.size - newRoom.size.y);
+    int positionX = Random.Range(1, matrix.size - newRoom.size.x - 1);
+    int positionY = Random.Range(1, matrix.size - newRoom.size.y - 1);
     newRoom.SetPosition(new Vector2Int(positionX, positionY));
 
-    SaveMatrix(newRoom);
+    SaveRoom(newRoom);
     rooms.Add(newRoom);
     GenerateRecursivly(newRoom);
 
@@ -85,7 +86,7 @@ public class Generator : MonoBehaviour
       newPos += randomSideOffset;
 
       newRoom.SetPosition(newPos);
-      if (SaveMatrix(newRoom))
+      if (SaveRoom(newRoom))
       {
         newRooms.Push(newRoom);
         rooms.Add(newRoom);
@@ -126,10 +127,10 @@ public class Generator : MonoBehaviour
   }
 
   int matrixOffset => matrix.size / 2;
-  bool SaveMatrix(Room room)
+  bool SaveRoom(Room room)
   {
-    if (room.position.x < 0 || room.position.x + room.size.x > matrix.size - 2) return false;
-    if (room.position.y < 0 || room.position.y + room.size.y > matrix.size - 2) return false;
+    if (room.position.x < 1 || room.position.x + room.size.x > matrix.size - 2) return false;
+    if (room.position.y < 1 || room.position.y + room.size.y > matrix.size - 2) return false;
 
     if (!CheckIfPositionIsFree(room)) return false;
 
@@ -167,14 +168,42 @@ public class Generator : MonoBehaviour
     return true;
   }
 
-  public void Place()
+  public void PlaceFloor()
   {
-    for (int i = 0; i < matrix.size; i++)
+    for (int i = 1; i < matrix.size - 1; i++)
     {
-      for (int j = 0; j < matrix.size; j++)
+      for (int j = 1; j < matrix.size - 1; j++)
       {
-        if (matrix.GetValue(i, j)) Instantiate(groundPrefab, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
+        if (matrix.GetValue(i, j))
+        {
+          Instantiate(groundPrefab, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
+          CheckForWallPlacement(i, j);
+        }
       }
+    }
+  }
+
+  void CheckForWallPlacement(int x, int y)
+  {
+    if (!matrix.GetValue(x, y - 1))
+    {
+      GameObject wall = Instantiate(wallPrefab, new Vector3(y * tileSize - tileSize / 2, 0, x * tileSize), Quaternion.identity);
+      wall.transform.LookAt(new Vector3(y * tileSize, 0, x * tileSize));
+    }
+    if (!matrix.GetValue(x - 1, y))
+    {
+      GameObject wall = Instantiate(wallPrefab, new Vector3(y * tileSize, 0, x * tileSize - tileSize / 2), Quaternion.identity);
+      wall.transform.LookAt(new Vector3(y * tileSize, 0, x * tileSize));
+    }
+    if (!matrix.GetValue(x + 1, y))
+    {
+      GameObject wall = Instantiate(wallPrefab, new Vector3(y * tileSize, 0, x * tileSize + tileSize / 2), Quaternion.identity);
+      wall.transform.LookAt(new Vector3(y * tileSize, 0, x * tileSize));
+    }
+    if (!matrix.GetValue(x, y + 1))
+    {
+      GameObject wall = Instantiate(wallPrefab, new Vector3(y * tileSize + tileSize / 2, 0, x * tileSize), Quaternion.identity);
+      wall.transform.LookAt(new Vector3(y * tileSize, 0, x * tileSize));
     }
   }
 

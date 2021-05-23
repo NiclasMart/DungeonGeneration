@@ -4,7 +4,9 @@ using UnityEngine;
 
 public class BitTestScript : MonoBehaviour
 {
-  // Start is called before the first frame update
+  [SerializeField] GameObject wallPrefab;
+  [SerializeField] GameObject groundPrefab;
+
   void Start()
   {
     for (int i = 0; i < 4; i++)
@@ -19,7 +21,6 @@ public class BitTestScript : MonoBehaviour
       Debug.Log("Direction: " + i + " -> " + direction);
       Debug.Log("Use offset: " + useOffset);
       Debug.Log("--------------");
-
 
 
 
