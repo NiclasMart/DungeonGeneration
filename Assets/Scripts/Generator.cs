@@ -9,7 +9,7 @@ public class Generator : MonoBehaviour
   [SerializeField] int roomCount;
   [SerializeField] Vector2Int roomDimensionX;
   [SerializeField] Vector2Int roomDimensionY;
-  [SerializeField] Vector2Int pathDimensions;
+  [SerializeField] int pathWidth;
 
   [SerializeField] GameObject groundPrefab;
   [SerializeField] GameObject debugCube;
@@ -34,11 +34,11 @@ public class Generator : MonoBehaviour
   public void StartGeneration()
   {
     Room newRoom = GenerateRoom();
-    int positionX = Random.Range(0, matrix.size - newRoom.topCorner.x);
-    int positionY = Random.Range(0, matrix.size - newRoom.topCorner.y);
+    int positionX = Random.Range(0, matrix.size - newRoom.position.x);
+    int positionY = Random.Range(0, matrix.size - newRoom.position.y);
     newRoom.SetPosition(new Vector2Int(positionX, positionY));
 
-    FillMatrix(newRoom);
+    SaveMatrix(newRoom);
     rooms.Add(newRoom);
     GenerateRecursivly(newRoom);
 
@@ -63,28 +63,28 @@ public class Generator : MonoBehaviour
 
       int axis = (i >> 1) & 1; //if x (axis == 0) or y (axis == 1)
       int direction = (i & 1) == 1 ? -1 : 1; //if positive or negative
-      int useOffset = (i ^ 1) & 1; //use room size as offset parameter
+      int useParentRoomOffset = (i ^ 1) & 1; //use room size as offset parameter
 
       Room newRoom = GenerateRoom();
 
       //calculate distance offset parameters
-      Vector2Int minOffset = (parentRoom.size * useOffset) + (newRoom.size * (useOffset ^ 1));
+      Vector2Int minOffset = (parentRoom.size * useParentRoomOffset) + (newRoom.size * (useParentRoomOffset ^ 1));
       int randomDistanceOffset = Random.Range(0, 5);
       Vector2Int axisOffsetVector = new Vector2Int((randomDistanceOffset + minOffset.x) * (axis ^ 1), (randomDistanceOffset + minOffset.y) * axis);
 
       //calculate room offset Position
-      Vector2Int newPos = parentRoom.topCorner + direction * axisOffsetVector;
+      Vector2Int newPos = parentRoom.position + direction * axisOffsetVector;
 
       //calculate room shift
-      int xSideOffset = Random.Range(-newRoom.size.x + pathDimensions.y, parentRoom.size.x - pathDimensions.y) * axis;
-      int ySideOffset = Random.Range(-newRoom.size.y + pathDimensions.y, parentRoom.size.y - pathDimensions.y) * (axis ^ 1);
+      int xSideOffset = Random.Range(-newRoom.size.x + pathWidth, parentRoom.size.x - pathWidth) * axis;
+      int ySideOffset = Random.Range(-newRoom.size.y + pathWidth, parentRoom.size.y - pathWidth) * (axis ^ 1);
       Vector2Int randomSideOffset = new Vector2Int(xSideOffset, ySideOffset);
 
       //calculate final position
       newPos += randomSideOffset;
 
       newRoom.SetPosition(newPos);
-      if (FillMatrix(newRoom))
+      if (SaveMatrix(newRoom))
       {
         newRooms.Push(newRoom);
         rooms.Add(newRoom);
@@ -92,22 +92,29 @@ public class Generator : MonoBehaviour
         //calculate path
         if (randomDistanceOffset == 0) continue;
         //Vector2Int pathOrigin = parentRoom.topCorner;
-        int testParam = (randomSideOffset.x + randomSideOffset.y) < 0 ? 0 : 1;
-        minOffset.x *= (axis ^ 1);
-        minOffset.y *= axis;
-        // int pathXOffset = Random.Range(0, newRoom.size.x + randomSideOffset.x - pathDimensions.y) * axis;
-        // int pathYOffset = Random.Range(0, newRoom.size.y + randomSideOffset.y - pathDimensions.x) * (axis ^ 1);
-
-        // Vector2Int randomPathOffset = new Vector2Int(pathXOffset, pathYOffset);
-        Vector2Int pathOrigin = parentRoom.topCorner + randomSideOffset * testParam + minOffset * useOffset;// + randomPathOffset;
+        int adjustPathOffset = (randomSideOffset.x + randomSideOffset.y) < 0 ? 0 : 1;
+        Vector2Int minPathOffset = (useParentRoomOffset == 1) ? minOffset * new Vector2Int(axis ^ 1, axis) : new Vector2Int(axis ^ 1, axis) * -1;
 
 
 
-        for (int j = 0; j <= randomDistanceOffset; j++)
+        Vector2Int pathOrigin = parentRoom.position + randomSideOffset * adjustPathOffset + minPathOffset;
+
+        int pathXOffset = 0, pathYOffset = 0;
+        if (axis == 1)
         {
-          Vector2Int pathTile = pathOrigin + (direction * new Vector2Int((axis ^ 1), axis) * j);
-          Instantiate(debugCube, new Vector3(pathTile.y * tileSize, 0, pathTile.x * tileSize), Quaternion.identity);
+          int pathXOffsetRange = Mathf.Min(parentRoom.GetTopRight().x, newRoom.GetTopRight().x) - pathOrigin.x;
+          pathXOffset = Random.Range(0, pathXOffsetRange - (pathWidth - 1));
         }
+        else
+        {
+          int pathYOffsetRange = Mathf.Min(parentRoom.GetBottomLeft().y, newRoom.GetBottomLeft().y) - pathOrigin.y;
+          pathYOffset = Random.Range(0, pathYOffsetRange - (pathWidth - 1));
+        }
+        Vector2Int randomPathOffset = new Vector2Int(pathXOffset, pathYOffset);
+
+        pathOrigin += randomPathOffset;
+
+        SavePath(pathOrigin, randomDistanceOffset, direction, axis);
       }
     }
     roomProbebility -= 0.01f;
@@ -118,16 +125,16 @@ public class Generator : MonoBehaviour
   }
 
   int matrixOffset => matrix.size / 2;
-  bool FillMatrix(Room room)
+  bool SaveMatrix(Room room)
   {
-    if (room.topCorner.x < 0 || room.topCorner.x + room.size.x > matrix.size - 2) return false;
-    if (room.topCorner.y < 0 || room.topCorner.y + room.size.y > matrix.size - 2) return false;
+    if (room.position.x < 0 || room.position.x + room.size.x > matrix.size - 2) return false;
+    if (room.position.y < 0 || room.position.y + room.size.y > matrix.size - 2) return false;
 
     if (!CheckIfPositionIsFree(room)) return false;
 
-    for (int i = room.topCorner.x; i < room.topCorner.x + room.size.x; i++)
+    for (int i = room.position.x; i < room.position.x + room.size.x; i++)
     {
-      for (int j = room.topCorner.y; j < room.topCorner.y + room.size.y; j++)
+      for (int j = room.position.y; j < room.position.y + room.size.y; j++)
       {
         matrix.SetValue(i, j, true);
       }
@@ -135,11 +142,24 @@ public class Generator : MonoBehaviour
     return true;
   }
 
+  void SavePath(Vector2Int startPos, int length, int direction, int axis)
+  {
+    for (int i = 0; i < length; i++)
+    {
+      for (int j = 0; j < pathWidth; j++)
+      {
+        Vector2Int pathTile = startPos + (direction * new Vector2Int((axis ^ 1), axis) * i) + new Vector2Int(axis, (axis ^ 1)) * j;
+        matrix.SetValue(pathTile.x, pathTile.y, true);
+        //Instantiate(debugCube, new Vector3(pathTile.y * tileSize, 0, pathTile.x * tileSize), Quaternion.identity);
+      }
+    }
+  }
+
   private bool CheckIfPositionIsFree(Room room)
   {
-    for (int i = room.topCorner.x; i < room.topCorner.x + room.size.x; i++)
+    for (int i = room.position.x; i < room.position.x + room.size.x; i++)
     {
-      for (int j = room.topCorner.y; j < room.topCorner.y + room.size.y; j++)
+      for (int j = room.position.y; j < room.position.y + room.size.y; j++)
       {
         if (matrix.GetValue(i, j)) return false;
       }
