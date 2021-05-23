@@ -6,7 +6,8 @@ public class Generator : MonoBehaviour
 {
   [SerializeField] int tileSize;  //how big the prefab tiles are
 
-  [SerializeField] int roomCount;
+  [SerializeField] int dungeonSize;
+  [SerializeField] float roomReductionOverTime = 0.001f;
   [SerializeField] Vector2Int roomDimensionX;
   [SerializeField] Vector2Int roomDimensionY;
   [SerializeField] int pathWidth;
@@ -14,12 +15,15 @@ public class Generator : MonoBehaviour
   [SerializeField] GameObject groundPrefab;
   [SerializeField] GameObject debugCube;
 
+  BitMatrix matrix;
+  List<Room> rooms = new List<Room>();
+
   float tileOffset;
 
   private void Awake()
   {
     tileOffset = tileSize / 2f;
-
+    matrix = new BitMatrix(dungeonSize);
   }
 
   private void Start()
@@ -28,14 +32,13 @@ public class Generator : MonoBehaviour
     Place();
   }
 
-  BitMatrix matrix = new BitMatrix(100);
-  List<Room> rooms = new List<Room>();
+
 
   public void StartGeneration()
   {
     Room newRoom = GenerateRoom();
-    int positionX = Random.Range(0, matrix.size - newRoom.position.x);
-    int positionY = Random.Range(0, matrix.size - newRoom.position.y);
+    int positionX = Random.Range(0, matrix.size - newRoom.size.x);
+    int positionY = Random.Range(0, matrix.size - newRoom.size.y);
     newRoom.SetPosition(new Vector2Int(positionX, positionY));
 
     SaveMatrix(newRoom);
@@ -54,8 +57,6 @@ public class Generator : MonoBehaviour
   float roomProbebility = 1f;
   void GenerateRecursivly(Room parentRoom)
   {
-    //if (currentIterration >= iterations) return;
-    //currentIterration++;
     Stack<Room> newRooms = new Stack<Room>();
     for (int i = 0; i < 4; i++)
     {
@@ -75,12 +76,12 @@ public class Generator : MonoBehaviour
       //calculate room offset Position
       Vector2Int newPos = parentRoom.position + direction * axisOffsetVector;
 
-      //calculate room shift
+      //calculate room side shift
       int xSideOffset = Random.Range(-newRoom.size.x + pathWidth, parentRoom.size.x - pathWidth) * axis;
       int ySideOffset = Random.Range(-newRoom.size.y + pathWidth, parentRoom.size.y - pathWidth) * (axis ^ 1);
       Vector2Int randomSideOffset = new Vector2Int(xSideOffset, ySideOffset);
 
-      //calculate final position
+      //calculate final room position
       newPos += randomSideOffset;
 
       newRoom.SetPosition(newPos);
@@ -88,17 +89,16 @@ public class Generator : MonoBehaviour
       {
         newRooms.Push(newRoom);
         rooms.Add(newRoom);
+        if (randomDistanceOffset == 0) continue;
 
         //calculate path
-        if (randomDistanceOffset == 0) continue;
-        //Vector2Int pathOrigin = parentRoom.topCorner;
+
+        //calculate path start position
         int adjustPathOffset = (randomSideOffset.x + randomSideOffset.y) < 0 ? 0 : 1;
         Vector2Int minPathOffset = (useParentRoomOffset == 1) ? minOffset * new Vector2Int(axis ^ 1, axis) : new Vector2Int(axis ^ 1, axis) * -1;
-
-
-
         Vector2Int pathOrigin = parentRoom.position + randomSideOffset * adjustPathOffset + minPathOffset;
 
+        //calculate path random offset
         int pathXOffset = 0, pathYOffset = 0;
         if (axis == 1)
         {
@@ -114,10 +114,11 @@ public class Generator : MonoBehaviour
 
         pathOrigin += randomPathOffset;
 
+        //set path
         SavePath(pathOrigin, randomDistanceOffset, direction, axis);
       }
     }
-    roomProbebility -= 0.01f;
+    roomProbebility -= roomReductionOverTime;
     while (newRooms.Count > 0)
     {
       GenerateRecursivly(newRooms.Pop());
@@ -150,7 +151,6 @@ public class Generator : MonoBehaviour
       {
         Vector2Int pathTile = startPos + (direction * new Vector2Int((axis ^ 1), axis) * i) + new Vector2Int(axis, (axis ^ 1)) * j;
         matrix.SetValue(pathTile.x, pathTile.y, true);
-        //Instantiate(debugCube, new Vector3(pathTile.y * tileSize, 0, pathTile.x * tileSize), Quaternion.identity);
       }
     }
   }
@@ -181,7 +181,7 @@ public class Generator : MonoBehaviour
   private void OnDrawGizmos()
   {
     Gizmos.color = Color.red;
-    int size = (matrix.size - 1) * tileSize;
+    int size = (dungeonSize - 1) * tileSize;
     Vector3 topRight = new Vector3(0, 0, size);
     Vector3 bottomLeft = new Vector3(size, 0, 0);
     Vector3 bottomRight = new Vector3(size, 0, size);
