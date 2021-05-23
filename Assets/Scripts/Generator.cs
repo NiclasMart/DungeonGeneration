@@ -6,11 +6,12 @@ public class Generator : MonoBehaviour
 {
   [SerializeField] int tileSize;  //how big the prefab tiles are
 
-  [SerializeField] int dungeonSize;
+  [SerializeField] int dungeonSize = 100;
   [SerializeField] float roomReductionOverTime = 0.001f;
-  [SerializeField] Vector2Int roomDimensionX;
-  [SerializeField] Vector2Int roomDimensionY;
-  [SerializeField] int pathWidth;
+  [SerializeField] Vector2Int roomDimensionX  = new Vector2Int(5, 10);
+  [SerializeField] Vector2Int roomDimensionY = new Vector2Int(5, 10);
+  [SerializeField] Vector2Int roomDistance = new Vector2Int(0, 10);
+  [SerializeField] int pathWidth = 2;
 
   [SerializeField] GameObject groundPrefab;
   [SerializeField] GameObject wallPrefab;
@@ -29,8 +30,10 @@ public class Generator : MonoBehaviour
 
   private void Start()
   {
+    print(Time.time);
     StartGeneration();
     PlaceFloor();
+    print(Time.time);
   }
 
 
@@ -71,7 +74,7 @@ public class Generator : MonoBehaviour
 
       //calculate distance offset parameters
       Vector2Int minOffset = (parentRoom.size * useParentRoomOffset) + (newRoom.size * (useParentRoomOffset ^ 1));
-      int randomDistanceOffset = Random.Range(0, 5);
+      int randomDistanceOffset = Random.Range(roomDistance.x, roomDistance.y);
       Vector2Int axisOffsetVector = new Vector2Int((randomDistanceOffset + minOffset.x) * (axis ^ 1), (randomDistanceOffset + minOffset.y) * axis);
 
       //calculate room offset Position
@@ -187,24 +190,26 @@ public class Generator : MonoBehaviour
   {
     if (!matrix.GetValue(x, y - 1))
     {
-      GameObject wall = Instantiate(wallPrefab, new Vector3(y * tileSize - tileSize / 2, 0, x * tileSize), Quaternion.identity);
-      wall.transform.LookAt(new Vector3(y * tileSize, 0, x * tileSize));
+      PlaceWall(x * tileSize, y * tileSize - tileSize / 2, x, y);
     }
     if (!matrix.GetValue(x - 1, y))
     {
-      GameObject wall = Instantiate(wallPrefab, new Vector3(y * tileSize, 0, x * tileSize - tileSize / 2), Quaternion.identity);
-      wall.transform.LookAt(new Vector3(y * tileSize, 0, x * tileSize));
+      PlaceWall(x * tileSize - tileSize / 2, y * tileSize, x, y);
     }
     if (!matrix.GetValue(x + 1, y))
     {
-      GameObject wall = Instantiate(wallPrefab, new Vector3(y * tileSize, 0, x * tileSize + tileSize / 2), Quaternion.identity);
-      wall.transform.LookAt(new Vector3(y * tileSize, 0, x * tileSize));
+      PlaceWall(x * tileSize + tileSize / 2, y * tileSize, x, y);
     }
     if (!matrix.GetValue(x, y + 1))
     {
-      GameObject wall = Instantiate(wallPrefab, new Vector3(y * tileSize + tileSize / 2, 0, x * tileSize), Quaternion.identity);
-      wall.transform.LookAt(new Vector3(y * tileSize, 0, x * tileSize));
+      PlaceWall(x * tileSize, y * tileSize + tileSize / 2, x, y);
     }
+  }
+
+  void PlaceWall(int x, int y, int directionX, int directionY)
+  {
+    GameObject wall = Instantiate(wallPrefab, new Vector3(y, 0, x), Quaternion.identity);
+    wall.transform.LookAt(new Vector3(directionY * tileSize, 0, directionX * tileSize));
   }
 
   private void OnDrawGizmos()
