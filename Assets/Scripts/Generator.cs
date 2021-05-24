@@ -8,14 +8,20 @@ public class Generator : MonoBehaviour
 
   [SerializeField] int dungeonSize = 100;
   [SerializeField] float roomReductionOverTime = 0.001f;
-  [SerializeField] Vector2Int roomDimensionX  = new Vector2Int(5, 10);
+  [SerializeField] Vector2Int roomDimensionX = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDimensionY = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDistance = new Vector2Int(0, 10);
+  [Tooltip("Defines up to which ratio a room is categorized as squared. The value must be larger than 1 ( 1 = square).")]
+  [SerializeField] float minColumnRoomSize = 5f;
+  [SerializeField] float columnProbability = 0.3f;
+  [SerializeField] Texture2D columnBluePrint;
   [SerializeField] int pathWidth = 2;
 
   [SerializeField] GameObject groundPrefab;
   [SerializeField] GameObject wallPrefab;
   [SerializeField] GameObject debugCube;
+
+  [SerializeField] bool generateColumns = true;
 
   BitMatrix matrix;
   List<Room> rooms = new List<Room>();
@@ -33,10 +39,38 @@ public class Generator : MonoBehaviour
     print(Time.time);
     StartGeneration();
     PlaceFloor();
+
+    if (generateColumns) GenerateColumns();
     print(Time.time);
   }
 
+  private void GenerateColumns()
+  {
+    // Texture2D workingCopy = new Texture2D(8, 8);
+    // Graphics.CopyTexture(columnBluePrint, workingCopy)
+    foreach (Room room in rooms)
+    {
+      if (room.size.x < columnBluePrint.height || room.size.y < columnBluePrint.height) continue;
+      //if (room.size.x % 2 == 1 || room.size.y % 2 == 1) continue;
+      if (Random.value > columnProbability) continue;
+      //columnBluePrint.Resize(room.size.x, room.size.y);
+      for (int i = 0; i < columnBluePrint.width; i++)
+      {
+        for (int j = 0; j < columnBluePrint.height; j++)
+        {
+          if (columnBluePrint.GetPixel(i, j) == Color.white) continue;
+          else
+          {
 
+            int x = (int)Mathf.Round((float)(room.size.x * j) / (columnBluePrint.width));
+            int y = (int)Mathf.Round((float)(room.size.y * ((columnBluePrint.height - 1) - i) / (columnBluePrint.height)));
+            Vector2Int position = room.GetBottomLeft() + new Vector2Int(x, -y);
+            SetDebugBlock(position);
+          }
+        }
+      }
+    }
+  }
 
   public void StartGeneration()
   {
@@ -210,6 +244,16 @@ public class Generator : MonoBehaviour
   {
     GameObject wall = Instantiate(wallPrefab, new Vector3(y, 0, x), Quaternion.identity);
     wall.transform.LookAt(new Vector3(directionY * tileSize, 0, directionX * tileSize));
+  }
+
+  void SetDebugBlock(Vector2Int pos)
+  {
+    SetDebugBlock(pos.x, pos.y);
+  }
+
+  void SetDebugBlock(int x, int y)
+  {
+    Instantiate(debugCube, new Vector3(y * tileSize, 0, x * tileSize), Quaternion.identity);
   }
 
   private void OnDrawGizmos()

@@ -23,12 +23,12 @@ class Room
 
   public Vector2Int GetTopRight()
   {
-    return position + new Vector2Int(size.x, 0);
+    return position + new Vector2Int(size.x - 1, 0);
   }
 
   public Vector2Int GetBottomLeft()
   {
-    return position + new Vector2Int(0, size.y);
+    return position + new Vector2Int(0, size.y - 1);
   }
 
 
