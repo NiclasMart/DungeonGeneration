@@ -62,8 +62,8 @@ public class Generator : MonoBehaviour
           else
           {
 
-            int x = (int)Mathf.Round((float)(room.size.x * j) / (columnBluePrint.width));
-            int y = (int)Mathf.Round((float)(room.size.y * ((columnBluePrint.height - 1) - i) / (columnBluePrint.height)));
+            int x = (int)Mathf.Round((float)(room.size.x * j) / (columnBluePrint.width) + (j * 0.1f));
+            int y = (int)Mathf.Round((float)(room.size.y * i) / (columnBluePrint.height) + (i * 0.1f));
             Vector2Int position = room.GetBottomLeft() + new Vector2Int(x, -y);
             SetDebugBlock(position);
           }
