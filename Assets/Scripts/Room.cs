@@ -1,10 +1,11 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 class Room
 {
   public Vector2Int size;
   public Vector2Int position;
-  public Room[] connections = new Room[4];
+  public List<Room> connections = new List<Room>();
 
   public Room(Vector2Int size)
   {
@@ -19,6 +20,11 @@ class Room
   public Vector2Int GetCenter()
   {
     return position + (size / 2);
+  }
+
+  public Vector3 GetCenterWorld()
+  {
+    return new Vector3(GetCenter().y, 0, GetCenter().x);
   }
 
   public Vector2Int GetTopRight()

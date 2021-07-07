@@ -21,11 +21,6 @@ public class BitTestScript : MonoBehaviour
       Debug.Log("Direction: " + i + " -> " + direction);
       Debug.Log("Use offset: " + useOffset);
       Debug.Log("--------------");
-
-
-
-
-
     }
   }
 

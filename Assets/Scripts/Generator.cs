@@ -36,40 +36,12 @@ public class Generator : MonoBehaviour
 
   private void Start()
   {
-    print(Time.time);
     StartGeneration();
     PlaceFloor();
 
     if (generateColumns) GenerateColumns();
-    print(Time.time);
   }
 
-  private void GenerateColumns()
-  {
-    // Texture2D workingCopy = new Texture2D(8, 8);
-    // Graphics.CopyTexture(columnBluePrint, workingCopy)
-    foreach (Room room in rooms)
-    {
-      if (room.size.x < columnBluePrint.height || room.size.y < columnBluePrint.height) continue;
-      //if (room.size.x % 2 == 1 || room.size.y % 2 == 1) continue;
-      if (Random.value > columnProbability) continue;
-      //columnBluePrint.Resize(room.size.x, room.size.y);
-      for (int i = 0; i < columnBluePrint.width; i++)
-      {
-        for (int j = 0; j < columnBluePrint.height; j++)
-        {
-          if (columnBluePrint.GetPixel(i, j) == Color.white) continue;
-          else
-          {
-            int x = (int)Mathf.Round((float)(room.size.x * j) / (columnBluePrint.width) + (j * 0.1f));
-            int y = (int)Mathf.Round((float)(room.size.y * i) / (columnBluePrint.height) + (i * 0.1f));
-            Vector2Int position = room.GetBottomLeft() + new Vector2Int(x, -y);
-            SetDebugBlock(position);
-          }
-        }
-      }
-    }
-  }
 
   public void StartGeneration()
   {
@@ -78,10 +50,12 @@ public class Generator : MonoBehaviour
     int positionY = Random.Range(1, matrix.size - newRoom.size.y - 1);
     newRoom.SetPosition(new Vector2Int(positionX, positionY));
 
-    SaveRoom(newRoom);
-    rooms.Add(newRoom);
-    GenerateRecursivly(newRoom);
+    SetDebugBlock(new Vector2Int(positionX, positionY));
 
+    SaveRoomInBitMatrix(newRoom);
+    rooms.Add(newRoom);
+
+    GenerateRecursivly(newRoom);
   }
 
   Room GenerateRoom()
@@ -122,8 +96,12 @@ public class Generator : MonoBehaviour
       newPos += randomSideOffset;
 
       newRoom.SetPosition(newPos);
-      if (SaveRoom(newRoom))
+      if (RoomPositionIsValid(newRoom))
       {
+        SaveRoomInBitMatrix(newRoom);
+        parentRoom.connections.Add(newRoom);
+        //newRoom.connections.Add(parentRoom);
+
         newRooms.Push(newRoom);
         rooms.Add(newRoom);
         if (randomDistanceOffset == 0) continue;
@@ -152,7 +130,7 @@ public class Generator : MonoBehaviour
         pathOrigin += randomPathOffset;
 
         //set path
-        SavePath(pathOrigin, randomDistanceOffset, direction, axis);
+        SavePathToBitMatrix(pathOrigin, randomDistanceOffset, direction, axis);
       }
     }
     roomProbebility -= roomReductionOverTime;
@@ -163,13 +141,8 @@ public class Generator : MonoBehaviour
   }
 
   int matrixOffset => matrix.size / 2;
-  bool SaveRoom(Room room)
+  void SaveRoomInBitMatrix(Room room)
   {
-    if (room.position.x < 1 || room.position.x + room.size.x > matrix.size - 2) return false;
-    if (room.position.y < 1 || room.position.y + room.size.y > matrix.size - 2) return false;
-
-    if (!CheckIfPositionIsFree(room)) return false;
-
     for (int i = room.position.x; i < room.position.x + room.size.x; i++)
     {
       for (int j = room.position.y; j < room.position.y + room.size.y; j++)
@@ -177,10 +150,19 @@ public class Generator : MonoBehaviour
         matrix.SetValue(i, j, true);
       }
     }
+  }
+
+  bool RoomPositionIsValid(Room room)
+  {
+    if (room.position.x < 1 || room.position.x + room.size.x > matrix.size - 2) return false;
+    if (room.position.y < 1 || room.position.y + room.size.y > matrix.size - 2) return false;
+
+    if (!CheckIfPositionIsFree(room)) return false;
+
     return true;
   }
 
-  void SavePath(Vector2Int startPos, int length, int direction, int axis)
+  void SavePathToBitMatrix(Vector2Int startPos, int length, int direction, int axis)
   {
     for (int i = 0; i < length; i++)
     {
@@ -245,6 +227,33 @@ public class Generator : MonoBehaviour
     wall.transform.LookAt(new Vector3(directionY * tileSize, 0, directionX * tileSize));
   }
 
+  private void GenerateColumns()
+  {
+    // Texture2D workingCopy = new Texture2D(8, 8);
+    // Graphics.CopyTexture(columnBluePrint, workingCopy)
+    foreach (Room room in rooms)
+    {
+      if (room.size.x < columnBluePrint.height || room.size.y < columnBluePrint.height) continue;
+      //if (room.size.x % 2 == 1 || room.size.y % 2 == 1) continue;
+      if (Random.value > columnProbability) continue;
+      //columnBluePrint.Resize(room.size.x, room.size.y);
+      for (int i = 0; i < columnBluePrint.width; i++)
+      {
+        for (int j = 0; j < columnBluePrint.height; j++)
+        {
+          if (columnBluePrint.GetPixel(i, j) == Color.white) continue;
+          else
+          {
+            int x = (int)Mathf.Round((float)(room.size.x * j) / (columnBluePrint.width) + (j * 0.1f));
+            int y = (int)Mathf.Round((float)(room.size.y * i) / (columnBluePrint.height) + (i * 0.1f));
+            Vector2Int position = room.GetBottomLeft() + new Vector2Int(x, -y);
+            SetDebugBlock(position);
+          }
+        }
+      }
+    }
+  }
+
   void SetDebugBlock(Vector2Int pos)
   {
     SetDebugBlock(pos.x, pos.y);
@@ -256,6 +265,25 @@ public class Generator : MonoBehaviour
   }
 
   private void OnDrawGizmos()
+  {
+    DrawDungeonAreaOutline();
+    DrawDungeonTree();
+  }
+
+  private void DrawDungeonTree()
+  {
+    Gizmos.color = Color.blue;
+    foreach (var room in rooms)
+    {
+      Gizmos.DrawSphere(room.GetCenterWorld() * tileSize, 3f);
+      foreach (var childRoom in room.connections)
+      {
+        Gizmos.DrawLine(room.GetCenterWorld() * tileSize, childRoom.GetCenterWorld() * tileSize);
+      }
+    }
+  }
+
+  private void DrawDungeonAreaOutline()
   {
     Gizmos.color = Color.red;
     int size = (dungeonSize - 1) * tileSize;
