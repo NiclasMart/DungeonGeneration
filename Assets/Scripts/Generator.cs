@@ -23,7 +23,7 @@ public class Generator : MonoBehaviour
 
   [SerializeField] bool generateColumns = true;
 
-  BitMatrix matrix;
+  BitMatrix roomMatrix, pathMatrix;
   List<Room> rooms = new List<Room>();
 
   float tileOffset;
@@ -31,13 +31,14 @@ public class Generator : MonoBehaviour
   private void Awake()
   {
     tileOffset = tileSize / 2f;
-    matrix = new BitMatrix(dungeonSize);
+    roomMatrix = new BitMatrix(dungeonSize);
+    pathMatrix = new BitMatrix(dungeonSize);
   }
 
   private void Start()
   {
     StartGeneration();
-    PlaceFloor();
+    PlaceTiles();
 
     if (generateColumns) GenerateColumns();
   }
@@ -46,13 +47,13 @@ public class Generator : MonoBehaviour
   public void StartGeneration()
   {
     Room newRoom = GenerateRoom();
-    int positionX = Random.Range(1, matrix.size - newRoom.size.x - 1);
-    int positionY = Random.Range(1, matrix.size - newRoom.size.y - 1);
+    int positionX = Random.Range(1, roomMatrix.size - newRoom.size.x - 1);
+    int positionY = Random.Range(1, roomMatrix.size - newRoom.size.y - 1);
     newRoom.SetPosition(new Vector2Int(positionX, positionY));
 
     SetDebugBlock(new Vector2Int(positionX, positionY));
 
-    SaveRoomInBitMatrix(newRoom);
+    SaveRoomToBitMatrix(newRoom);
     rooms.Add(newRoom);
 
     GenerateRecursivly(newRoom);
@@ -81,8 +82,8 @@ public class Generator : MonoBehaviour
 
       //calculate distance offset parameters
       Vector2Int minOffset = (parentRoom.size * useParentRoomOffset) + (newRoom.size * (useParentRoomOffset ^ 1));
-      int randomDistanceOffset = Random.Range(roomDistance.x, roomDistance.y);
-      Vector2Int axisOffsetVector = new Vector2Int((randomDistanceOffset + minOffset.x) * (axis ^ 1), (randomDistanceOffset + minOffset.y) * axis);
+      int randomRoomDistanceOffset = Random.Range(roomDistance.x, roomDistance.y);
+      Vector2Int axisOffsetVector = new Vector2Int((randomRoomDistanceOffset + minOffset.x) * (axis ^ 1), (randomRoomDistanceOffset + minOffset.y) * axis);
 
       //calculate room offset Position
       Vector2Int newPos = parentRoom.position + direction * axisOffsetVector;
@@ -98,39 +99,35 @@ public class Generator : MonoBehaviour
       newRoom.SetPosition(newPos);
       if (RoomPositionIsValid(newRoom))
       {
-        SaveRoomInBitMatrix(newRoom);
-        parentRoom.connections.Add(newRoom);
-        //newRoom.connections.Add(parentRoom);
-
-        newRooms.Push(newRoom);
-        rooms.Add(newRoom);
-        if (randomDistanceOffset == 0) continue;
-
         //calculate path
-
-        //calculate path start position
-        int adjustPathOffset = (randomSideOffset.x + randomSideOffset.y) < 0 ? 0 : 1;
-        Vector2Int minPathOffset = (useParentRoomOffset == 1) ? minOffset * new Vector2Int(axis ^ 1, axis) : new Vector2Int(axis ^ 1, axis) * -1;
-        Vector2Int pathOrigin = parentRoom.position + randomSideOffset * adjustPathOffset + minPathOffset;
-
-        //calculate path random offset
-        int pathXOffset = 0, pathYOffset = 0;
-        if (axis == 1)
+        if (randomRoomDistanceOffset != 0)
         {
-          int pathXOffsetRange = Mathf.Min(parentRoom.GetTopRight().x, newRoom.GetTopRight().x) - pathOrigin.x;
-          pathXOffset = Random.Range(0, pathXOffsetRange - (pathWidth - 1));
-        }
-        else
-        {
-          int pathYOffsetRange = Mathf.Min(parentRoom.GetBottomLeft().y, newRoom.GetBottomLeft().y) - pathOrigin.y;
-          pathYOffset = Random.Range(0, pathYOffsetRange - (pathWidth - 1));
-        }
-        Vector2Int randomPathOffset = new Vector2Int(pathXOffset, pathYOffset);
+          //calculate path start position
+          int adjustPathOffset = (randomSideOffset.x + randomSideOffset.y) < 0 ? 0 : 1;
+          Vector2Int minPathOffset = (useParentRoomOffset == 1) ? minOffset * new Vector2Int(axis ^ 1, axis) : new Vector2Int(axis ^ 1, axis) * -1;
+          Vector2Int pathOrigin = parentRoom.position + randomSideOffset * adjustPathOffset + minPathOffset;
 
-        pathOrigin += randomPathOffset;
+          //calculate path random offset
+          int pathXOffset = 0, pathYOffset = 0;
+          if (axis == 1)
+          {
+            int pathXOffsetRange = Mathf.Min(parentRoom.GetTopRight().x, newRoom.GetTopRight().x) - pathOrigin.x;
+            pathXOffset = Random.Range(0, pathXOffsetRange - (pathWidth - 1));
+          }
+          else
+          {
+            int pathYOffsetRange = Mathf.Min(parentRoom.GetBottomLeft().y, newRoom.GetBottomLeft().y) - pathOrigin.y;
+            pathYOffset = Random.Range(0, pathYOffsetRange - (pathWidth - 1));
+          }
+          Vector2Int randomPathOffset = new Vector2Int(pathXOffset, pathYOffset);
 
-        //set path
-        SavePathToBitMatrix(pathOrigin, randomDistanceOffset, direction, axis);
+          pathOrigin += randomPathOffset;
+
+          if (!PathPositionIsValid(pathOrigin, randomRoomDistanceOffset, direction, axis)) continue;
+
+          SavePathToBitMatrix(pathOrigin, randomRoomDistanceOffset, direction, axis);
+        }
+        SaveNewRoom(parentRoom, newRooms, newRoom);
       }
     }
     roomProbebility -= roomReductionOverTime;
@@ -140,60 +137,86 @@ public class Generator : MonoBehaviour
     }
   }
 
-  int matrixOffset => matrix.size / 2;
-  void SaveRoomInBitMatrix(Room room)
+  private void SaveNewRoom(Room parentRoom, Stack<Room> newRooms, Room newRoom)
+  {
+    SaveRoomToBitMatrix(newRoom);
+    parentRoom.connections.Add(newRoom);
+    newRooms.Push(newRoom);
+    rooms.Add(newRoom);
+  }
+
+  void SaveRoomToBitMatrix(Room room)
   {
     for (int i = room.position.x; i < room.position.x + room.size.x; i++)
     {
       for (int j = room.position.y; j < room.position.y + room.size.y; j++)
       {
-        matrix.SetValue(i, j, true);
+        roomMatrix.SetValue(i, j, true);
+      }
+    }
+  }
+
+  void SavePathToBitMatrix(Vector2Int startPos, int length, int direction, int axis)
+  {
+    //iterate over all path tiles
+    for (int i = 0; i < length; i++)
+    {
+      for (int j = 0; j < pathWidth; j++)
+      {
+        Vector2Int pathTileIndex = startPos + (direction * new Vector2Int((axis ^ 1), axis) * i) + new Vector2Int(axis, (axis ^ 1)) * j;
+        pathMatrix.SetValue(pathTileIndex.x, pathTileIndex.y, true);
       }
     }
   }
 
   bool RoomPositionIsValid(Room room)
   {
-    if (room.position.x < 1 || room.position.x + room.size.x > matrix.size - 2) return false;
-    if (room.position.y < 1 || room.position.y + room.size.y > matrix.size - 2) return false;
+    if (room.position.x < 1 || room.position.x + room.size.x > roomMatrix.size - 2) return false;
+    if (room.position.y < 1 || room.position.y + room.size.y > roomMatrix.size - 2) return false;
 
-    if (!CheckIfPositionIsFree(room)) return false;
+    if (!EnoughSpaceForRoomPlacement(room)) return false;
 
     return true;
   }
 
-  void SavePathToBitMatrix(Vector2Int startPos, int length, int direction, int axis)
+  bool PathPositionIsValid(Vector2Int startPos, int length, int direction, int axis)
   {
     for (int i = 0; i < length; i++)
     {
-      for (int j = 0; j < pathWidth; j++)
+      for (int j = -1; j < pathWidth + 2; j++)
       {
-        Vector2Int pathTile = startPos + (direction * new Vector2Int((axis ^ 1), axis) * i) + new Vector2Int(axis, (axis ^ 1)) * j;
-        matrix.SetValue(pathTile.x, pathTile.y, true);
+        Vector2Int pathTileIndex = startPos + (direction * new Vector2Int((axis ^ 1), axis) * i) + new Vector2Int(axis, (axis ^ 1)) * j;
+        if (pathTileIndex.x < 0 || i >= pathMatrix.size || pathTileIndex.y < 0 || j >= pathMatrix.size) continue;
+        if (roomMatrix.GetValue(pathTileIndex.x, pathTileIndex.y)) return false;
       }
     }
+    return true;
   }
 
-  private bool CheckIfPositionIsFree(Room room)
+  private bool EnoughSpaceForRoomPlacement(Room room)
   {
     for (int i = room.position.x - 1; i < room.position.x + room.size.x + 2; i++)
     {
       for (int j = room.position.y - 1; j < room.position.y + room.size.y + 2; j++)
       {
-        if (i < 0 || i >= matrix.size || j < 0 || j >= matrix.size) continue;
-        if (matrix.GetValue(i, j)) return false;
+        if (i < 0 || i >= roomMatrix.size || j < 0 || j >= roomMatrix.size) continue;
+        if (roomMatrix.GetValue(i, j)) return false;
+        if (pathMatrix.GetValue(i, j)) return false;
       }
     }
     return true;
   }
 
-  public void PlaceFloor()
+
+
+  public void PlaceTiles()
   {
-    for (int i = 1; i < matrix.size - 1; i++)
+    BitMatrix combinedMatrix = roomMatrix + pathMatrix;
+    for (int i = 1; i < combinedMatrix.size - 1; i++)
     {
-      for (int j = 1; j < matrix.size - 1; j++)
+      for (int j = 1; j < combinedMatrix.size - 1; j++)
       {
-        if (matrix.GetValue(i, j))
+        if (combinedMatrix.GetValue(i, j))
         {
           Instantiate(groundPrefab, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
           CheckForWallPlacement(i, j);
@@ -204,19 +227,19 @@ public class Generator : MonoBehaviour
 
   void CheckForWallPlacement(int x, int y)
   {
-    if (!matrix.GetValue(x, y - 1))
+    if (!roomMatrix.GetValue(x, y - 1))
     {
       PlaceWall(x * tileSize, y * tileSize - tileSize / 2, x, y);
     }
-    if (!matrix.GetValue(x - 1, y))
+    if (!roomMatrix.GetValue(x - 1, y))
     {
       PlaceWall(x * tileSize - tileSize / 2, y * tileSize, x, y);
     }
-    if (!matrix.GetValue(x + 1, y))
+    if (!roomMatrix.GetValue(x + 1, y))
     {
       PlaceWall(x * tileSize + tileSize / 2, y * tileSize, x, y);
     }
-    if (!matrix.GetValue(x, y + 1))
+    if (!roomMatrix.GetValue(x, y + 1))
     {
       PlaceWall(x * tileSize, y * tileSize + tileSize / 2, x, y);
     }

@@ -40,4 +40,15 @@ class BitMatrix
     return s;
   }
 
+  public static BitMatrix operator +(BitMatrix a, BitMatrix b)
+  {
+    if (a.size != b.size) throw new Exception("Adding two BitMatrices of diffeent sizes is not allowed!");
+
+    for (int i = 0; i < a.size; i++)
+    {
+      a.data[i].Or(b.data[i]);
+    }
+    return a;
+  }
+
 }
