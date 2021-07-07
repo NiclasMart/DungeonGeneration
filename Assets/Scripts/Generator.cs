@@ -25,6 +25,7 @@ public class Generator : MonoBehaviour
 
   BitMatrix roomMatrix, pathMatrix;
   List<Room> rooms = new List<Room>();
+  List<Path> paths = new List<Path>();
 
   float tileOffset;
 
@@ -124,8 +125,8 @@ public class Generator : MonoBehaviour
           pathOrigin += randomPathOffset;
 
           if (!PathPositionIsValid(pathOrigin, randomRoomDistanceOffset, direction, axis)) continue;
-
           SavePathToBitMatrix(pathOrigin, randomRoomDistanceOffset, direction, axis);
+          paths.Add(new Path(parentRoom, newRoom));
         }
         SaveNewRoom(parentRoom, newRooms, newRoom);
       }
@@ -164,7 +165,10 @@ public class Generator : MonoBehaviour
       for (int j = 0; j < pathWidth; j++)
       {
         Vector2Int pathTileIndex = startPos + (direction * new Vector2Int((axis ^ 1), axis) * i) + new Vector2Int(axis, (axis ^ 1)) * j;
-        pathMatrix.SetValue(pathTileIndex.x, pathTileIndex.y, true);
+
+        if (pathMatrix.GetValue(pathTileIndex.x, pathTileIndex.y))
+
+          pathMatrix.SetValue(pathTileIndex.x, pathTileIndex.y, true);
       }
     }
   }
@@ -206,8 +210,6 @@ public class Generator : MonoBehaviour
     }
     return true;
   }
-
-
 
   public void PlaceTiles()
   {

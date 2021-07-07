@@ -154,11 +154,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tileSize: 4
-  dungeonSize: 100
+  dungeonSize: 200
   roomReductionOverTime: 0.001
   roomDimensionX: {x: 5, y: 15}
   roomDimensionY: {x: 5, y: 15}
-  roomDistance: {x: 1, y: 10}
+  roomDistance: {x: 5, y: 25}
   minColumnRoomSize: 5
   columnProbability: 0.3
   columnBluePrint: {fileID: 2800000, guid: fd71474ada0eb5149aa62d5264838341, type: 3}
@@ -166,7 +166,7 @@ MonoBehaviour:
   groundPrefab: {fileID: 916917378494744782, guid: 98f5378049f9b5745a77677f581b32b1, type: 3}
   wallPrefab: {fileID: 7779381877309823848, guid: 2f6c4572e07a60b43b00e1c4f489a806, type: 3}
   debugCube: {fileID: 5155054765403287173, guid: d63f8d55a5f1b59409c69b26355509e4, type: 3}
-  generateColumns: 1
+  generateColumns: 0
 --- !u!4 &333698602
 Transform:
   m_ObjectHideFlags: 0
