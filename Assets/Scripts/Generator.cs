@@ -176,10 +176,11 @@ public class Generator : MonoBehaviour
 
   private bool CheckIfPositionIsFree(Room room)
   {
-    for (int i = room.position.x; i < room.position.x + room.size.x; i++)
+    for (int i = room.position.x - 1; i < room.position.x + room.size.x + 2; i++)
     {
-      for (int j = room.position.y; j < room.position.y + room.size.y; j++)
+      for (int j = room.position.y - 1; j < room.position.y + room.size.y + 2; j++)
       {
+        if (i < 0 || i >= matrix.size || j < 0 || j >= matrix.size) continue;
         if (matrix.GetValue(i, j)) return false;
       }
     }
