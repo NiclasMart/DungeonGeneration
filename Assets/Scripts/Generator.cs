@@ -166,9 +166,9 @@ public class Generator : MonoBehaviour
       {
         Vector2Int pathTileIndex = startPos + (direction * new Vector2Int((axis ^ 1), axis) * i) + new Vector2Int(axis, (axis ^ 1)) * j;
 
-        if (pathMatrix.GetValue(pathTileIndex.x, pathTileIndex.y))
+        //if (pathMatrix.GetValue(pathTileIndex.x, pathTileIndex.y))
 
-          pathMatrix.SetValue(pathTileIndex.x, pathTileIndex.y, true);
+        pathMatrix.SetValue(pathTileIndex.x, pathTileIndex.y, true);
       }
     }
   }
