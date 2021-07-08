@@ -121,12 +121,14 @@ public class Generator : MonoBehaviour
             pathYOffset = Random.Range(0, pathYOffsetRange - (pathWidth - 1));
           }
           Vector2Int randomPathOffset = new Vector2Int(pathXOffset, pathYOffset);
-
           pathOrigin += randomPathOffset;
 
           if (!PathPositionIsValid(pathOrigin, randomRoomDistanceOffset, direction, axis)) continue;
-          SavePathToBitMatrix(pathOrigin, randomRoomDistanceOffset, direction, axis);
-          paths.Add(new Path(parentRoom, newRoom));
+
+          Path newPath = CreatePath(pathOrigin, randomRoomDistanceOffset, direction, axis);
+          newPath.AddConnections(parentRoom, newRoom);
+          SavePathToBitMatrix(newPath);
+          paths.Add(newPath);
         }
         SaveNewRoom(parentRoom, newRooms, newRoom);
       }
@@ -136,6 +138,16 @@ public class Generator : MonoBehaviour
     {
       GenerateRecursivly(newRooms.Pop());
     }
+  }
+
+  private Path CreatePath(Vector2Int pathOrigin, int length, int direction, int axis)
+  {
+    int xSize, ySize;
+    (xSize, ySize) = axis == 0 ? (length, pathWidth) : (pathWidth, length);
+    Path newPath = new Path(new Vector2Int(xSize, ySize));
+    //sets the start point of the path so that it always is in the top left corner
+    newPath.position = direction == -1 ? pathOrigin - new Vector2Int((axis ^ 1), axis) * (newPath.size - Vector2Int.one) : pathOrigin;
+    return newPath;
   }
 
   private void SaveNewRoom(Room parentRoom, Stack<Room> newRooms, Room newRoom)
@@ -157,20 +169,38 @@ public class Generator : MonoBehaviour
     }
   }
 
-  void SavePathToBitMatrix(Vector2Int startPos, int length, int direction, int axis)
+  void SavePathToBitMatrix(Path path)
   {
     //iterate over all path tiles
-    for (int i = 0; i < length; i++)
+    for (int i = 0; i < path.size.x; i++)
     {
-      for (int j = 0; j < pathWidth; j++)
+      for (int j = 0; j < path.size.y; j++)
       {
-        Vector2Int pathTileIndex = startPos + (direction * new Vector2Int((axis ^ 1), axis) * i) + new Vector2Int(axis, (axis ^ 1)) * j;
+        Vector2Int pathTileIndex = path.position + new Vector2Int(i, j);
 
-        //if (pathMatrix.GetValue(pathTileIndex.x, pathTileIndex.y))
+        //handle path crossing within node system
+        if (pathMatrix.GetValue(pathTileIndex.x, pathTileIndex.y))
+        {
+          Path crossPath = GetPathAtPosition(pathTileIndex);
+          if (crossPath == null) break;
+          foreach (var room in crossPath.connections)
+          {
+            room.connections.Add(path.connections[0]);
+            room.connections.Add(path.connections[1]);
+          }
+        }
 
         pathMatrix.SetValue(pathTileIndex.x, pathTileIndex.y, true);
       }
     }
+  }
+
+  private Path GetPathAtPosition(Vector2Int gridPos)
+  {
+    return paths.Find(i => (i.position.x <= gridPos.x
+                        && (i.position + i.size).x >= gridPos.x
+                        && i.position.y <= gridPos.y
+                        && (i.position + i.size).y >= gridPos.y));
   }
 
   bool RoomPositionIsValid(Room room)

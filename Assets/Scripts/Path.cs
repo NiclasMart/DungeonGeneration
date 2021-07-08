@@ -1,14 +1,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-class Path
+class Path : Room
 {
-  //public Vector2Int origin;
-  public List<Room> connectedRooms = new List<Room>();
-
-  public Path(Room a, Room b)
+  public Path(Vector2Int size) : base(size)
   {
-    connectedRooms.Add(a);
-    connectedRooms.Add(b);
   }
+
+  public void AddConnections(Room a, Room b)
+  {
+    connections.Add(a);
+    connections.Add(b);
+  }
+
+
 }
