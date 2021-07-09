@@ -125,6 +125,7 @@ public class Generator : MonoBehaviour
 
           if (!PathPositionIsValid(pathOrigin, randomRoomDistanceOffset, direction, axis)) continue;
 
+          //finalizing path generation
           Path newPath = CreatePath(pathOrigin, randomRoomDistanceOffset, direction, axis);
           newPath.AddConnections(parentRoom, newRoom);
           SavePathToBitMatrix(newPath);
@@ -150,6 +151,8 @@ public class Generator : MonoBehaviour
     return newPath;
   }
 
+  //finalizes the room generation step
+  //saves room and sets up connections
   private void SaveNewRoom(Room parentRoom, Stack<Room> newRooms, Room newRoom)
   {
     SaveRoomToBitMatrix(newRoom);
@@ -184,20 +187,26 @@ public class Generator : MonoBehaviour
         {
           Path crossPath = GetPathAtPosition(pathTileIndex);
           if (crossPath == null) break;
-          //add all connections to rooms and paths
-          foreach (var room in crossPath.connections)
-            room.AddConnections(path.connections);
-          foreach (var newRoom in path.connections)
-            newRoom.AddConnections(crossPath.connections);
-          crossPath.AddConnections(path.connections);
-          path.AddConnections(crossPath.connections);
-        }
 
+          AddCrossingConnections(path, crossPath);
+        }
         pathMatrix.SetValue(pathTileIndex.x, pathTileIndex.y, true);
       }
     }
   }
 
+  //sets all requiered connections for the node system 
+  private static void AddCrossingConnections(Path path, Path crossPath)
+  {
+    foreach (var room in crossPath.connections)
+      room.AddConnections(path.connections);
+    foreach (var newRoom in path.connections)
+      newRoom.AddConnections(crossPath.connections);
+    crossPath.AddConnections(path.connections);
+    path.AddConnections(crossPath.connections);
+  }
+
+  //searches for existing path on given position
   private Path GetPathAtPosition(Vector2Int gridPos)
   {
     return paths.Find(i => (i.position.x <= gridPos.x
@@ -207,7 +216,8 @@ public class Generator : MonoBehaviour
   }
 
   bool RoomPositionIsValid(Room room)
-  {
+  { 
+    //check if room position is within the allowed grid zone
     if (room.position.x < 1 || room.position.x + room.size.x > roomMatrix.size - 2) return false;
     if (room.position.y < 1 || room.position.y + room.size.y > roomMatrix.size - 2) return false;
 
@@ -216,6 +226,9 @@ public class Generator : MonoBehaviour
     return true;
   }
 
+  /* checks if space for path is free
+  the path should not collide with any room
+  validation space is one block wider than the path size itself to avoid contact points */
   bool PathPositionIsValid(Vector2Int startPos, int length, int direction, int axis)
   {
     for (int i = 0; i < length; i++)
@@ -230,6 +243,9 @@ public class Generator : MonoBehaviour
     return true;
   }
 
+  /* checks if space for the room is free
+  the room should not collide with any room or path
+  validation space is one block wider than the room size itself to avoid contact points */
   private bool EnoughSpaceForRoomPlacement(Room room)
   {
     for (int i = room.position.x - 1; i < room.position.x + room.size.x + 2; i++)
@@ -244,6 +260,7 @@ public class Generator : MonoBehaviour
     return true;
   }
 
+  //iterates over filled matrix and places tiles accordingly into the world
   public void PlaceTiles()
   {
     BitMatrix combinedMatrix = roomMatrix + pathMatrix;
