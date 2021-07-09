@@ -6,7 +6,10 @@ public class Generator : MonoBehaviour
 {
   [SerializeField] int tileSize;  //how big the prefab tiles are
 
+  // parameter for dungeon size
   [SerializeField] int dungeonSize = 100;
+  [SerializeField] int roomCount = 50;
+  //----------
   [SerializeField] float roomReductionOverTime = 0.001f;
   [SerializeField] Vector2Int roomDimensionX = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDimensionY = new Vector2Int(5, 10);
@@ -26,6 +29,7 @@ public class Generator : MonoBehaviour
   BitMatrix roomMatrix, pathMatrix;
   List<Room> rooms = new List<Room>();
   List<Path> paths = new List<Path>();
+  int currentRoomCount = 1;
 
   float tileOffset;
 
@@ -40,7 +44,7 @@ public class Generator : MonoBehaviour
   {
     StartGeneration();
     PlaceTiles();
-
+    Debug.Log("Placed " + currentRoomCount + " rooms.");
     if (generateColumns) GenerateColumns();
   }
 
@@ -68,11 +72,12 @@ public class Generator : MonoBehaviour
   }
 
   float roomProbebility = 1f;
+  Queue<Room> newRoomsQueue = new Queue<Room>();
   void GenerateRecursivly(Room parentRoom)
   {
-    Stack<Room> newRooms = new Stack<Room>();
     for (int i = 0; i < 4; i++)
     {
+      if (currentRoomCount >= roomCount) continue;
       if (Random.Range(0f, 1f) > roomProbebility) continue;
 
       int axis = (i >> 1) & 1; //if x (axis == 0) or y (axis == 1)
@@ -131,13 +136,13 @@ public class Generator : MonoBehaviour
           SavePathToBitMatrix(newPath);
           paths.Add(newPath);
         }
-        SaveNewRoom(parentRoom, newRooms, newRoom);
+        SaveNewRoom(parentRoom, newRoom);
       }
     }
     roomProbebility -= roomReductionOverTime;
-    while (newRooms.Count > 0)
+    while (newRoomsQueue.Count > 0)
     {
-      GenerateRecursivly(newRooms.Pop());
+      GenerateRecursivly(newRoomsQueue.Dequeue());
     }
   }
 
@@ -153,12 +158,13 @@ public class Generator : MonoBehaviour
 
   //finalizes the room generation step
   //saves room and sets up connections
-  private void SaveNewRoom(Room parentRoom, Stack<Room> newRooms, Room newRoom)
+  private void SaveNewRoom(Room parentRoom, Room newRoom)
   {
     SaveRoomToBitMatrix(newRoom);
+    currentRoomCount++;
     parentRoom.AddConnection(newRoom);
     newRoom.AddConnection(parentRoom);
-    newRooms.Push(newRoom);
+    newRoomsQueue.Enqueue(newRoom);
     rooms.Add(newRoom);
   }
 
@@ -216,7 +222,7 @@ public class Generator : MonoBehaviour
   }
 
   bool RoomPositionIsValid(Room room)
-  { 
+  {
     //check if room position is within the allowed grid zone
     if (room.position.x < 1 || room.position.x + room.size.x > roomMatrix.size - 2) return false;
     if (room.position.y < 1 || room.position.y + room.size.y > roomMatrix.size - 2) return false;
