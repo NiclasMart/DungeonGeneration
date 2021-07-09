@@ -7,19 +7,23 @@ public class Generator : MonoBehaviour
   [SerializeField] int tileSize;  //how big the prefab tiles are
 
   // parameter for dungeon size
+  [Header("Dungeon Parameters")]
   [SerializeField] int dungeonSize = 100;
   [SerializeField] int roomCount = 50;
   //----------
-  [SerializeField] float roomReductionOverTime = 0.001f;
+  [Header("Room parameters")]
   [SerializeField] Vector2Int roomDimensionX = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDimensionY = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDistance = new Vector2Int(0, 10);
+
+  [Header("Other")]
   [Tooltip("Defines up to which ratio a room is categorized as squared. The value must be larger than 1 ( 1 = square).")]
   [SerializeField] float minColumnRoomSize = 5f;
   [SerializeField] float columnProbability = 0.3f;
   [SerializeField] Texture2D columnBluePrint;
   [SerializeField] int pathWidth = 2;
 
+  [Header("Tile Prefabs")]
   [SerializeField] GameObject groundPrefab;
   [SerializeField] GameObject wallPrefab;
   [SerializeField] GameObject debugCube;
@@ -52,11 +56,9 @@ public class Generator : MonoBehaviour
   public void StartGeneration()
   {
     Room newRoom = GenerateRoom();
-    int positionX = Random.Range(1, roomMatrix.size - newRoom.size.x - 1);
-    int positionY = Random.Range(1, roomMatrix.size - newRoom.size.y - 1);
-    newRoom.SetPosition(new Vector2Int(positionX, positionY));
+    newRoom.SetPosition(new Vector2Int(roomMatrix.size / 2, roomMatrix.size / 2));
 
-    SetDebugBlock(new Vector2Int(positionX, positionY));
+    SetDebugBlock(new Vector2Int(roomMatrix.size / 2, roomMatrix.size / 2));
 
     SaveRoomToBitMatrix(newRoom);
     rooms.Add(newRoom);
@@ -139,7 +141,6 @@ public class Generator : MonoBehaviour
         SaveNewRoom(parentRoom, newRoom);
       }
     }
-    roomProbebility -= roomReductionOverTime;
     while (newRoomsQueue.Count > 0)
     {
       GenerateRecursivly(newRoomsQueue.Dequeue());
@@ -254,9 +255,10 @@ public class Generator : MonoBehaviour
   validation space is one block wider than the room size itself to avoid contact points */
   private bool EnoughSpaceForRoomPlacement(Room room)
   {
-    for (int i = room.position.x - 1; i < room.position.x + room.size.x + 2; i++)
+    int roomSaveSpace = 1;
+    for (int i = room.position.x - roomSaveSpace; i < room.position.x + room.size.x + roomSaveSpace; i++)
     {
-      for (int j = room.position.y - 1; j < room.position.y + room.size.y + 2; j++)
+      for (int j = room.position.y - roomSaveSpace; j < room.position.y + room.size.y + roomSaveSpace; j++)
       {
         if (i < 0 || i >= roomMatrix.size || j < 0 || j >= roomMatrix.size) continue;
         if (roomMatrix.GetValue(i, j)) return false;

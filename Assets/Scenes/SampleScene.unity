@@ -155,10 +155,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   tileSize: 4
   dungeonSize: 200
-  roomReductionOverTime: 0.001
+  roomCount: 150
   roomDimensionX: {x: 5, y: 15}
   roomDimensionY: {x: 5, y: 15}
-  roomDistance: {x: 5, y: 35}
+  roomDistance: {x: 1, y: 1}
   minColumnRoomSize: 5
   columnProbability: 0.3
   columnBluePrint: {fileID: 2800000, guid: fd71474ada0eb5149aa62d5264838341, type: 3}
