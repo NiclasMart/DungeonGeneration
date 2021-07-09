@@ -153,7 +153,8 @@ public class Generator : MonoBehaviour
   private void SaveNewRoom(Room parentRoom, Stack<Room> newRooms, Room newRoom)
   {
     SaveRoomToBitMatrix(newRoom);
-    parentRoom.connections.Add(newRoom);
+    parentRoom.AddConnection(newRoom);
+    newRoom.AddConnection(parentRoom);
     newRooms.Push(newRoom);
     rooms.Add(newRoom);
   }
@@ -183,11 +184,13 @@ public class Generator : MonoBehaviour
         {
           Path crossPath = GetPathAtPosition(pathTileIndex);
           if (crossPath == null) break;
+          //add all connections to rooms and paths
           foreach (var room in crossPath.connections)
-          {
-            room.connections.Add(path.connections[0]);
-            room.connections.Add(path.connections[1]);
-          }
+            room.AddConnections(path.connections);
+          foreach (var newRoom in path.connections)
+            newRoom.AddConnections(crossPath.connections);
+          crossPath.AddConnections(path.connections);
+          path.AddConnections(crossPath.connections);
         }
 
         pathMatrix.SetValue(pathTileIndex.x, pathTileIndex.y, true);

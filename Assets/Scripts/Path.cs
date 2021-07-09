@@ -9,8 +9,8 @@ class Path : Room
 
   public void AddConnections(Room a, Room b)
   {
-    connections.Add(a);
-    connections.Add(b);
+    AddConnection(a);
+    AddConnection(b);
   }
 
 

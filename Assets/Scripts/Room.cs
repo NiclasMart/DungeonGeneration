@@ -37,5 +37,19 @@ class Room
     return position + new Vector2Int(0, size.y - 1);
   }
 
+  public void AddConnection(Room room)
+  {
+    if (connections.Contains(room) || room == this) return;
+    connections.Add(room);
+  }
+
+  public void AddConnections(List<Room> rooms)
+  {
+    foreach (var room in rooms)
+    {
+      AddConnection(room);
+    }
+  }
+
 
 }
