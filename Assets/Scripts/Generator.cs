@@ -54,18 +54,6 @@ public class Generator : MonoBehaviour
     if (generateColumns) GenerateColumns();
   }
 
-  private void StartIterativeImproving()
-  {
-    int iterationSteps = (int)Mathf.Max(-0.1f * roomCount + 100, 1);
-    Debug.Log("Iteration Attempts: " + rooms.Count);
-
-    for (int i = 0; i < rooms.Count; i++)
-    {
-      Room startRoom = rooms[i];
-      GenerateRecursivly(startRoom);
-    }
-  }
-
   public void StartGeneration()
   {
     Room newRoom = GenerateRoom();
@@ -79,13 +67,6 @@ public class Generator : MonoBehaviour
     GenerateRecursivly(newRoom);
   }
 
-  Room GenerateRoom()
-  {
-    int sizeX = Random.Range(roomDimensionX.x, roomDimensionX.y);
-    int sizeY = Random.Range(roomDimensionY.x, roomDimensionY.y);
-    return new Room(new Vector2Int(sizeX, sizeY));
-  }
-
   float roomProbebility = 1f;
   Queue<Room> newRoomsQueue = new Queue<Room>();
   void GenerateRecursivly(Room parentRoom)
@@ -95,69 +76,87 @@ public class Generator : MonoBehaviour
       if (currentRoomCount >= roomCount) continue;
       if (Random.Range(0f, 1f) > roomProbebility) continue;
 
-      int axis = (i >> 1) & 1; //if x (axis == 0) or y (axis == 1)
-      int direction = (i & 1) == 1 ? -1 : 1; //if positive or negative
-      int useParentRoomOffset = (i ^ 1) & 1; //use room size as offset parameter
-
-      Room newRoom = GenerateRoom();
-
-      //calculate distance offset parameters
-      Vector2Int minOffset = (parentRoom.size * useParentRoomOffset) + (newRoom.size * (useParentRoomOffset ^ 1));
-      int randomRoomDistanceOffset = Random.Range(roomDistance.x, roomDistance.y);
-      Vector2Int axisOffsetVector = new Vector2Int((randomRoomDistanceOffset + minOffset.x) * (axis ^ 1), (randomRoomDistanceOffset + minOffset.y) * axis);
-
-      //calculate room offset Position
-      Vector2Int newPos = parentRoom.position + direction * axisOffsetVector;
-
-      //calculate room side shift
-      int xSideOffset = Random.Range(-newRoom.size.x + pathWidth, parentRoom.size.x - pathWidth) * axis;
-      int ySideOffset = Random.Range(-newRoom.size.y + pathWidth, parentRoom.size.y - pathWidth) * (axis ^ 1);
-      Vector2Int randomSideOffset = new Vector2Int(xSideOffset, ySideOffset);
-
-      //calculate final room position
-      newPos += randomSideOffset;
-
-      newRoom.SetPosition(newPos);
-      if (RoomPositionIsValid(newRoom))
+      //generate room with path in several attempts
+      for (int attempt = 0; attempt < 10; attempt++)
       {
-        //calculate path
-        if (randomRoomDistanceOffset != 0)
-        {
-          //calculate path start position
-          int adjustPathOffset = (randomSideOffset.x + randomSideOffset.y) < 0 ? 0 : 1;
-          Vector2Int minPathOffset = (useParentRoomOffset == 1) ? minOffset * new Vector2Int(axis ^ 1, axis) : new Vector2Int(axis ^ 1, axis) * -1;
-          Vector2Int pathOrigin = parentRoom.position + randomSideOffset * adjustPathOffset + minPathOffset;
-
-          //calculate path random offset
-          int pathXOffset = 0, pathYOffset = 0;
-          if (axis == 1)
-          {
-            int pathXOffsetRange = Mathf.Min(parentRoom.GetTopRight().x, newRoom.GetTopRight().x) - pathOrigin.x;
-            pathXOffset = Random.Range(0, pathXOffsetRange - (pathWidth - 1));
-          }
-          else
-          {
-            int pathYOffsetRange = Mathf.Min(parentRoom.GetBottomLeft().y, newRoom.GetBottomLeft().y) - pathOrigin.y;
-            pathYOffset = Random.Range(0, pathYOffsetRange - (pathWidth - 1));
-          }
-          Vector2Int randomPathOffset = new Vector2Int(pathXOffset, pathYOffset);
-          pathOrigin += randomPathOffset;
-
-          if (!PathPositionIsValid(pathOrigin, randomRoomDistanceOffset, direction, axis)) continue;
-
-          //finalizing path generation
-          Path newPath = CreatePath(pathOrigin, randomRoomDistanceOffset, direction, axis);
-          newPath.AddConnections(parentRoom, newRoom);
-          SavePathToBitMatrix(newPath);
-          paths.Add(newPath);
-        }
-        SaveNewRoom(parentRoom, newRoom);
+        if (Generate(parentRoom, i)) break;
       }
     }
+
+    //call generation recursively for each generated room
     while (newRoomsQueue.Count > 0)
     {
       GenerateRecursivly(newRoomsQueue.Dequeue());
     }
+  }
+
+  Room GenerateRoom()
+  {
+    int sizeX = Random.Range(roomDimensionX.x, roomDimensionX.y);
+    int sizeY = Random.Range(roomDimensionY.x, roomDimensionY.y);
+    return new Room(new Vector2Int(sizeX, sizeY));
+  }
+
+  private bool Generate(Room parentRoom, int i)
+  {
+    int axis = (i >> 1) & 1; //if x (axis == 0) or y (axis == 1)
+    int direction = (i & 1) == 1 ? -1 : 1; //if positive or negative
+    int useParentRoomOffset = (i ^ 1) & 1; //use room size as offset parameter
+
+    Room newRoom = GenerateRoom();
+
+    //calculate distance offset parameters
+    Vector2Int minOffset = (parentRoom.size * useParentRoomOffset) + (newRoom.size * (useParentRoomOffset ^ 1));
+    int randomRoomDistanceOffset = Random.Range(roomDistance.x, roomDistance.y);
+    Vector2Int axisOffsetVector = new Vector2Int((randomRoomDistanceOffset + minOffset.x) * (axis ^ 1), (randomRoomDistanceOffset + minOffset.y) * axis);
+
+    //calculate room offset Position
+    Vector2Int newPos = parentRoom.position + direction * axisOffsetVector;
+
+    //calculate room side shift
+    int xSideOffset = Random.Range(-newRoom.size.x + pathWidth, parentRoom.size.x - pathWidth) * axis;
+    int ySideOffset = Random.Range(-newRoom.size.y + pathWidth, parentRoom.size.y - pathWidth) * (axis ^ 1);
+    Vector2Int randomSideOffset = new Vector2Int(xSideOffset, ySideOffset);
+
+    //calculate final room position
+    newPos += randomSideOffset;
+    newRoom.SetPosition(newPos);
+
+    if (!RoomPositionIsValid(newRoom)) return false;
+
+    //calculate path
+    if (randomRoomDistanceOffset != 0)
+    {
+      //calculate path start position
+      int adjustPathOffset = (randomSideOffset.x + randomSideOffset.y) < 0 ? 0 : 1;
+      Vector2Int minPathOffset = (useParentRoomOffset == 1) ? minOffset * new Vector2Int(axis ^ 1, axis) : new Vector2Int(axis ^ 1, axis) * -1;
+      Vector2Int pathOrigin = parentRoom.position + randomSideOffset * adjustPathOffset + minPathOffset;
+
+      //calculate path random offset
+      int pathXOffset = 0, pathYOffset = 0;
+      if (axis == 1)
+      {
+        int pathXOffsetRange = Mathf.Min(parentRoom.GetTopRight().x, newRoom.GetTopRight().x) - pathOrigin.x;
+        pathXOffset = Random.Range(0, pathXOffsetRange - (pathWidth - 1));
+      }
+      else
+      {
+        int pathYOffsetRange = Mathf.Min(parentRoom.GetBottomLeft().y, newRoom.GetBottomLeft().y) - pathOrigin.y;
+        pathYOffset = Random.Range(0, pathYOffsetRange - (pathWidth - 1));
+      }
+      Vector2Int randomPathOffset = new Vector2Int(pathXOffset, pathYOffset);
+      pathOrigin += randomPathOffset;
+
+      if (!PathPositionIsValid(pathOrigin, randomRoomDistanceOffset, direction, axis)) return false;
+
+      //finalizing path generation
+      Path newPath = CreatePath(pathOrigin, randomRoomDistanceOffset, direction, axis);
+      newPath.AddConnections(parentRoom, newRoom);
+      SavePathToBitMatrix(newPath);
+      paths.Add(newPath);
+    }
+    SaveNewRoom(parentRoom, newRoom);
+    return true;
   }
 
   private Path CreatePath(Vector2Int pathOrigin, int length, int direction, int axis)
@@ -280,6 +279,18 @@ public class Generator : MonoBehaviour
       }
     }
     return true;
+  }
+
+  private void StartIterativeImproving()
+  {
+    int iterationSteps = (int)Mathf.Max(-0.1f * roomCount + 100, 1);
+    Debug.Log("Iteration Attempts: " + rooms.Count);
+
+    for (int i = 0; i < rooms.Count; i++)
+    {
+      Room startRoom = rooms[i];
+      GenerateRecursivly(startRoom);
+    }
   }
 
   //iterates over filled matrix and places tiles accordingly into the world
