@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-class Path : Room
+public class Path : Room
 {
   public Path(Vector2Int size) : base(size)
   {

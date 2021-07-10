@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-class Room
+public class Room
 {
   public Vector2Int size;
   public Vector2Int position;
@@ -27,9 +27,9 @@ class Room
     return new Vector3(GetCenter().y, 0, GetCenter().x);
   }
 
-  public Vector2Int GetTopRight()
+  public Vector2Int GetBottomRight()
   {
-    return position + new Vector2Int(size.x - 1, 0);
+    return position + size - Vector2Int.one;
   }
 
   public Vector2Int GetBottomLeft()
