@@ -9,7 +9,8 @@ public class Generator : MonoBehaviour
   // parameter for dungeon size
   [Header("Dungeon Parameters")]
   [SerializeField] int dungeonSize = 100;
-  [SerializeField] int roomCount = 50;
+  [SerializeField, Min(1)] int roomCount = 50;
+  [SerializeField, Range(0, 1)] float branchFactor = 0.1f;
   //----------
   [Header("Room parameters")]
   [SerializeField] Vector2Int roomDimensionX = new Vector2Int(5, 10);
@@ -47,11 +48,23 @@ public class Generator : MonoBehaviour
   private void Start()
   {
     StartGeneration();
+    StartIterativeImproving();
     PlaceTiles();
     Debug.Log("Placed " + currentRoomCount + " rooms.");
     if (generateColumns) GenerateColumns();
   }
 
+  private void StartIterativeImproving()
+  {
+    int iterationSteps = (int)Mathf.Max(-0.1f * roomCount + 100, 1);
+    Debug.Log("Iteration Attempts: " + rooms.Count);
+
+    for (int i = 0; i < rooms.Count; i++)
+    {
+      Room startRoom = rooms[i];
+      GenerateRecursivly(startRoom);
+    }
+  }
 
   public void StartGeneration()
   {
@@ -240,11 +253,12 @@ public class Generator : MonoBehaviour
   {
     for (int i = 0; i < length; i++)
     {
-      for (int j = -1; j < pathWidth + 2; j++)
+      for (int j = -1; j < pathWidth + 1; j++)
       {
         Vector2Int pathTileIndex = startPos + (direction * new Vector2Int((axis ^ 1), axis) * i) + new Vector2Int(axis, (axis ^ 1)) * j;
         if (pathTileIndex.x < 0 || i >= pathMatrix.size || pathTileIndex.y < 0 || j >= pathMatrix.size) continue;
         if (roomMatrix.GetValue(pathTileIndex.x, pathTileIndex.y)) return false;
+        if (branchFactor == 0 && pathMatrix.GetValue(pathTileIndex.x, pathTileIndex.y)) return false;
       }
     }
     return true;
