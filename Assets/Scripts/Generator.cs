@@ -11,7 +11,7 @@ public class Generator : MonoBehaviour
   [SerializeField] int dungeonSize = 100;
   [SerializeField, Min(1)] int roomCount = 50;
   [SerializeField, Range(0, 1)] float compressFactor = 0.1f;
-  [SerializeField, Range(0, 1)] float networkingDegree = 0.3f;
+  [SerializeField, Range(0, 1)] float connectionDegree = 0.3f;
   //----------
   [Header("Room parameters")]
   [SerializeField] Vector2Int roomDimensionX = new Vector2Int(5, 10);
@@ -280,7 +280,13 @@ public class Generator : MonoBehaviour
         Vector2Int pathTileIndex = path.position + new Vector2Int((axis ^ 1), axis) * i + new Vector2Int(axis, (axis ^ 1)) * j;
         if (pathTileIndex.x < 0 || i >= pathMatrix.size || pathTileIndex.y < 0 || j >= pathMatrix.size) continue;
         if (roomMatrix.GetValue(pathTileIndex.x, pathTileIndex.y)) return false;
-        if (compressFactor == 0 && pathMatrix.GetValue(pathTileIndex.x, pathTileIndex.y)) return false;
+
+        //decide whether path crossing is allowed depending on the connection degree
+        if (pathMatrix.GetValue(pathTileIndex.x, pathTileIndex.y))
+        {
+          bool crossingAllowed = Random.Range(0, 1f) < connectionDegree;
+          if (!crossingAllowed) return false;
+        }
       }
     }
     return true;
@@ -323,7 +329,7 @@ public class Generator : MonoBehaviour
 
   private void GenerateAdditionalConnections()
   {
-    List<Room[]> roomTuples = GraphProcessor.GenerateAdditionalConnections(rooms, roomDistance.y, networkingDegree);
+    List<Room[]> roomTuples = GraphProcessor.GenerateAdditionalConnections(rooms, roomDistance.y, connectionDegree);
 
     foreach (var tuple in roomTuples)
     {
