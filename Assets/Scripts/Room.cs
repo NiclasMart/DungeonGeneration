@@ -29,7 +29,7 @@ public class Room
 
   public Vector2Int GetBottomRight()
   {
-    return position + size - Vector2Int.one;
+    return position + size;
   }
 
   public Vector2Int GetBottomLeft()

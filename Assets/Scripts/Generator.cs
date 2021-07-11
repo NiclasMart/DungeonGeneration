@@ -11,6 +11,7 @@ public class Generator : MonoBehaviour
   [SerializeField] int dungeonSize = 100;
   [SerializeField, Min(1)] int roomCount = 50;
   [SerializeField, Range(0, 1)] float spreadFactor = 0.1f;
+  [SerializeField, Range(0, 1)] float networkingDegree = 0.3f;
   //----------
   [Header("Room parameters")]
   [SerializeField] Vector2Int roomDimensionX = new Vector2Int(5, 10);
@@ -49,9 +50,71 @@ public class Generator : MonoBehaviour
   {
     StartGeneration();
     StartIterativeImproving();
+    GenerateAdditionalConnections();
     PlaceTiles();
     Debug.Log("Placed " + currentRoomCount + " rooms.");
     if (generateColumns) GenerateColumns();
+  }
+
+  private void GenerateAdditionalConnections()
+  {
+    List<Room[]> roomTuples = GraphProcessor.GenerateLeafConnections(rooms, roomDistance.y, networkingDegree);
+
+    foreach (var tuple in roomTuples)
+    {
+      TryConnectingRooms(tuple[0], tuple[1]);
+      SetDebugBlock(tuple[0].position);
+    }
+  }
+
+  private void TryConnectingRooms(Room leafNode, Room node)
+  {
+    Path newPath = null;
+    if (node.GetBottomRight().x >= leafNode.position.x + pathWidth && node.position.x + pathWidth <= leafNode.GetBottomRight().x)
+    {
+      int minXOffset = Mathf.Max(0, node.position.x - leafNode.position.x);
+      int maxXOffset = Mathf.Min(leafNode.size.x - pathWidth, node.GetBottomRight().x - leafNode.position.x - pathWidth);
+      int xOffset = UnityEngine.Random.Range(minXOffset, maxXOffset);
+
+      int direction = node.position.y - leafNode.position.y < 0 ? -1 : 1;
+      int yOffset = direction == -1 ? -1 : leafNode.size.y;
+      int distanceOffset = direction == -1 ? node.size.y : leafNode.size.y;
+
+      Vector2Int offset = new Vector2Int(xOffset, yOffset);
+      Vector2Int pathOrigin = leafNode.position + offset;
+
+      newPath = CreatePath(pathOrigin, Mathf.Abs(leafNode.position.y - node.position.y) - distanceOffset, direction, 1);
+      if (!PathPositionIsValid(newPath, 1)) newPath = null;
+    }
+    else if (node.GetBottomRight().y >= leafNode.position.y + pathWidth && node.position.y + pathWidth <= leafNode.GetBottomRight().y)
+    {
+      int minYOffset = Mathf.Max(0, node.position.y - leafNode.position.y);
+      int maxYOffset = Mathf.Min(leafNode.size.y - pathWidth, node.GetBottomRight().y - leafNode.position.y - pathWidth);
+      int yOffset = UnityEngine.Random.Range(minYOffset, maxYOffset);
+
+      int direction = node.position.x - leafNode.position.x < 0 ? -1 : 1;
+      int xOffset = direction == -1 ? -1 : leafNode.size.x;
+      int distanceOffset = direction == -1 ? node.size.x : leafNode.size.x;
+
+      Vector2Int offset = new Vector2Int(xOffset, yOffset);
+      Vector2Int pathOrigin = leafNode.position + offset;
+
+      newPath = CreatePath(pathOrigin, Mathf.Abs(leafNode.position.x - node.position.x) - distanceOffset, direction, 0);
+      if (!PathPositionIsValid(newPath, 0)) newPath = null;
+    }
+
+    //if no connection is possible delete connection
+    if (newPath == null)
+    {
+      leafNode.connections.Remove(node);
+      node.connections.Remove(leafNode);
+      return;
+    }
+
+    //save created path
+    newPath.AddConnections(leafNode, node);
+    SavePathToBitMatrix(newPath);
+    paths.Add(newPath);
   }
 
   public void StartGeneration()
@@ -136,21 +199,21 @@ public class Generator : MonoBehaviour
       int pathXOffset = 0, pathYOffset = 0;
       if (axis == 1)
       {
-        int pathXOffsetRange = Mathf.Min(parentRoom.GetTopRight().x, newRoom.GetTopRight().x) - pathOrigin.x;
+        int pathXOffsetRange = Mathf.Min(parentRoom.GetBottomRight().x, newRoom.GetBottomRight().x) - pathOrigin.x;
         pathXOffset = Random.Range(0, pathXOffsetRange - (pathWidth - 1));
       }
       else
       {
-        int pathYOffsetRange = Mathf.Min(parentRoom.GetBottomLeft().y, newRoom.GetBottomLeft().y) - pathOrigin.y;
+        int pathYOffsetRange = Mathf.Min(parentRoom.GetBottomRight().y, newRoom.GetBottomRight().y) - pathOrigin.y;
         pathYOffset = Random.Range(0, pathYOffsetRange - (pathWidth - 1));
       }
       Vector2Int randomPathOffset = new Vector2Int(pathXOffset, pathYOffset);
       pathOrigin += randomPathOffset;
 
-      if (!PathPositionIsValid(pathOrigin, randomRoomDistanceOffset, direction, axis)) return false;
+      Path newPath = CreatePath(pathOrigin, randomRoomDistanceOffset, direction, axis);
+      if (!PathPositionIsValid(newPath, axis)) return false;
 
       //finalizing path generation
-      Path newPath = CreatePath(pathOrigin, randomRoomDistanceOffset, direction, axis);
       newPath.AddConnections(parentRoom, newRoom);
       SavePathToBitMatrix(newPath);
       paths.Add(newPath);
@@ -248,13 +311,14 @@ public class Generator : MonoBehaviour
   /* checks if space for path is free
   the path should not collide with any room
   validation space is one block wider than the path size itself to avoid contact points */
-  bool PathPositionIsValid(Vector2Int startPos, int length, int direction, int axis)
+  bool PathPositionIsValid(Path path, int axis)
   {
+    int length = axis == 0 ? path.size.x : path.size.y;
     for (int i = 0; i < length; i++)
     {
       for (int j = -1; j < pathWidth + 1; j++)
       {
-        Vector2Int pathTileIndex = startPos + (direction * new Vector2Int((axis ^ 1), axis) * i) + new Vector2Int(axis, (axis ^ 1)) * j;
+        Vector2Int pathTileIndex = path.position + new Vector2Int((axis ^ 1), axis) * i + new Vector2Int(axis, (axis ^ 1)) * j;
         if (pathTileIndex.x < 0 || i >= pathMatrix.size || pathTileIndex.y < 0 || j >= pathMatrix.size) continue;
         if (roomMatrix.GetValue(pathTileIndex.x, pathTileIndex.y)) return false;
         if (spreadFactor == 0 && pathMatrix.GetValue(pathTileIndex.x, pathTileIndex.y)) return false;
