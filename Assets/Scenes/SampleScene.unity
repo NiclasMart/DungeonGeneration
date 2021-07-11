@@ -154,9 +154,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tileSize: 4
-  dungeonSize: 100
-  roomCount: 200
-  spreadFactor: 1
+  dungeonSize: 300
+  roomCount: 100
+  compressFactor: 1
   networkingDegree: 0
   roomDimensionX: {x: 5, y: 15}
   roomDimensionY: {x: 5, y: 15}
