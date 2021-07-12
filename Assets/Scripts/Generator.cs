@@ -10,21 +10,27 @@ public class Generator : MonoBehaviour
   [Header("Dungeon Parameters")]
   [SerializeField] int dungeonSize = 100;
   [SerializeField, Min(1)] int roomCount = 50;
+  [SerializeField] int pathWidth = 2;
   [SerializeField, Range(0, 1)] float compressFactor = 0.1f;
   [SerializeField, Range(0, 1)] float connectionDegree = 0.3f;
   [SerializeField, Range(0, 1)] float shape = 0;
-  //----------
+
   [Header("Room parameters")]
   [SerializeField] Vector2Int roomDimensionX = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDimensionY = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDistance = new Vector2Int(0, 10);
+
+  [Header("Path Parameters")]
+  [SerializeField] bool startRoomHasEdgePosition;
+  [SerializeField] bool endRoomHasEdgePosition;
+  [SerializeField] bool useFullDungeonSize;
+  [SerializeField] float minPathLength, maxPathLength;
 
   [Header("Other")]
   [Tooltip("Defines up to which ratio a room is categorized as squared. The value must be larger than 1 ( 1 = square).")]
   [SerializeField] float minColumnRoomSize = 5f;
   [SerializeField] float columnProbability = 0.3f;
   [SerializeField] Texture2D columnBluePrint;
-  [SerializeField] int pathWidth = 2;
 
   [Header("Tile Prefabs")]
   [SerializeField] GameObject groundPrefab;
@@ -56,11 +62,30 @@ public class Generator : MonoBehaviour
     StartGeneration();
     StartIterativeImproving();
     GenerateAdditionalConnections();
+    GeneratePath();
     PlaceTiles();
 
     DebugInformation();
 
     if (generateColumns) GenerateColumns();
+  }
+
+  private void GeneratePath()
+  {
+    if (useFullDungeonSize)
+    {
+      Room[] edgeRooms = GraphProcessor.GetEdgeRooms(rooms);
+      if (Vector2Int.Distance(edgeRooms[0].GetCenter(), edgeRooms[1].GetCenter()) > Vector2Int.Distance(edgeRooms[2].GetCenter(), edgeRooms[3].GetCenter()))
+      {
+        SetDebugBlock(edgeRooms[0].position);
+        SetDebugBlock(edgeRooms[1].position);
+      }
+      else
+      {
+        SetDebugBlock(edgeRooms[2].position);
+        SetDebugBlock(edgeRooms[3].position);
+      }
+    }
   }
 
   public void StartGeneration()
