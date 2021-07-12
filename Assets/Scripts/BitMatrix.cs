@@ -5,17 +5,17 @@ using UnityEngine;
 class BitMatrix
 {
   public BitArray[] data; // an array of arrays
-  public Vector2Int size; // dimension
+  public int size; // dimension
 
-  public BitMatrix(int n, float ratio)
+  public BitMatrix(int n)
   {
     if (n == 0) throw new Exception("Cant Create BitMatrix of size 0.");
 
-    size = new Vector2Int((int)(n / ratio), (int)(n * ratio));
-    this.data = new BitArray[size.x];
+    size = n;
+    this.data = new BitArray[n];
     for (int i = 0; i < data.Length; ++i)
     {
-      this.data[i] = new BitArray(size.y);
+      this.data[i] = new BitArray(n);
     }
   }
 
@@ -47,7 +47,7 @@ class BitMatrix
   {
     if (a.size != b.size) throw new Exception("Adding two BitMatrices of diffeent sizes is not allowed!");
 
-    for (int i = 0; i < a.size.x; i++)
+    for (int i = 0; i < a.size; i++)
     {
       a.data[i].Or(b.data[i]);
     }
