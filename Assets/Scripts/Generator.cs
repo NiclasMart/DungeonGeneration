@@ -41,11 +41,11 @@ public class Generator : MonoBehaviour
 
   private void Awake()
   {
+    //pre calculate shape area
     float shapeAreaSize = Mathf.Max(dungeonSize - (shape * dungeonSize), 2 * roomDimensionX.x);
     float leftBorder = dungeonSize / 2 - shapeAreaSize / 2;
     float rightBorder = dungeonSize / 2 + shapeAreaSize / 2;
     shapeArea = new Vector2Int((int)leftBorder, (int)rightBorder);
-    Debug.Log(shapeArea.x + " " + shapeArea.y);
 
     roomMatrix = new BitMatrix(dungeonSize);
     pathMatrix = new BitMatrix(dungeonSize);
@@ -459,8 +459,9 @@ public class Generator : MonoBehaviour
 
   private void DebugInformation()
   {
-    float ratio = (3f * shape + 1f);
-    Debug.Log("Space Ratio: 1 : " + (ratio * ratio));
+    float shapeAreaSize = Mathf.Max(dungeonSize - (shape * dungeonSize), 2 * roomDimensionX.x);
+    float ratio = dungeonSize / shapeAreaSize;
+    Debug.Log("Space Ratio: 1 : " + ratio);
     Debug.Log("Placed " + currentRoomCount + " rooms.");
 
     float connectionCount = 0;
