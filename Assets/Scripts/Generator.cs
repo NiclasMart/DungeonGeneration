@@ -12,6 +12,7 @@ public class Generator : MonoBehaviour
   [SerializeField, Min(1)] int roomCount = 50;
   [SerializeField, Range(0, 1)] float compressFactor = 0.1f;
   [SerializeField, Range(0, 1)] float connectionDegree = 0.3f;
+  [SerializeField, Range(0, 1)] float shape = 0;
   //----------
   [Header("Room parameters")]
   [SerializeField] Vector2Int roomDimensionX = new Vector2Int(5, 10);
@@ -37,13 +38,11 @@ public class Generator : MonoBehaviour
   List<Path> paths = new List<Path>();
   int currentRoomCount = 1;
 
-  float tileOffset;
-
   private void Awake()
   {
-    tileOffset = tileSize / 2f;
-    roomMatrix = new BitMatrix(dungeonSize);
-    pathMatrix = new BitMatrix(dungeonSize);
+    float aspectRatio = 3f * shape + 1f;
+    roomMatrix = new BitMatrix(dungeonSize, aspectRatio);
+    pathMatrix = new BitMatrix(dungeonSize, aspectRatio);
   }
 
   private void Start()
@@ -61,9 +60,9 @@ public class Generator : MonoBehaviour
   public void StartGeneration()
   {
     Room newRoom = GenerateRoom();
-    newRoom.SetPosition(new Vector2Int(roomMatrix.size / 2, roomMatrix.size / 2));
+    newRoom.SetPosition(new Vector2Int(roomMatrix.size.x / 2, roomMatrix.size.y / 2));
 
-    SetDebugBlock(new Vector2Int(roomMatrix.size / 2, roomMatrix.size / 2));
+    SetDebugBlock(new Vector2Int(roomMatrix.size.x / 2, roomMatrix.size.y / 2));
 
     SaveRoomToBitMatrix(newRoom);
     rooms.Add(newRoom);
@@ -246,8 +245,8 @@ public class Generator : MonoBehaviour
   bool RoomPositionIsValid(Room room)
   {
     //check if room position is within the allowed grid zone
-    if (room.position.x < 1 || room.position.x + room.size.x > roomMatrix.size - 2) return false;
-    if (room.position.y < 1 || room.position.y + room.size.y > roomMatrix.size - 2) return false;
+    if (room.position.x < 1 || room.position.x + room.size.x > roomMatrix.size.x - 2) return false;
+    if (room.position.y < 1 || room.position.y + room.size.y > roomMatrix.size.y - 2) return false;
 
     if (!EnoughSpaceForRoomPlacement(room)) return false;
 
@@ -265,7 +264,7 @@ public class Generator : MonoBehaviour
       for (int j = -1; j < pathWidth + 1; j++)
       {
         Vector2Int pathTileIndex = path.position + new Vector2Int((axis ^ 1), axis) * i + new Vector2Int(axis, (axis ^ 1)) * j;
-        if (pathTileIndex.x < 0 || i >= pathMatrix.size || pathTileIndex.y < 0 || j >= pathMatrix.size) continue;
+        if (pathTileIndex.x < 0 || pathTileIndex.x >= pathMatrix.size.x || pathTileIndex.y < 0 || pathTileIndex.y >= pathMatrix.size.y) continue;
         if (roomMatrix.GetValue(pathTileIndex.x, pathTileIndex.y)) return false;
 
         //decide whether path crossing is allowed depending on the connection degree
@@ -289,7 +288,7 @@ public class Generator : MonoBehaviour
     {
       for (int j = room.position.y - roomSaveSpace; j < room.position.y + room.size.y + roomSaveSpace; j++)
       {
-        if (i < 0 || i >= roomMatrix.size || j < 0 || j >= roomMatrix.size) continue;
+        if (i < 0 || i >= roomMatrix.size.x || j < 0 || j >= roomMatrix.size.y) continue;
         if (roomMatrix.GetValue(i, j)) return false;
         if (pathMatrix.GetValue(i, j)) return false;
       }
@@ -381,9 +380,9 @@ public class Generator : MonoBehaviour
   public void PlaceTiles()
   {
     BitMatrix combinedMatrix = roomMatrix + pathMatrix;
-    for (int i = 1; i < combinedMatrix.size - 1; i++)
+    for (int i = 1; i < combinedMatrix.size.x - 1; i++)
     {
-      for (int j = 1; j < combinedMatrix.size - 1; j++)
+      for (int j = 1; j < combinedMatrix.size.y - 1; j++)
       {
         if (combinedMatrix.GetValue(i, j))
         {
@@ -449,6 +448,8 @@ public class Generator : MonoBehaviour
 
   private void DebugInformation()
   {
+    float ratio = (3f * shape + 1f);
+    Debug.Log("Space Ratio: 1 : " + (ratio * ratio));
     Debug.Log("Placed " + currentRoomCount + " rooms.");
 
     float connectionCount = 0;
@@ -491,10 +492,10 @@ public class Generator : MonoBehaviour
   private void DrawDungeonAreaOutline()
   {
     Gizmos.color = Color.red;
-    int size = (dungeonSize - 1) * tileSize;
-    Vector3 topRight = new Vector3(0, 0, size);
-    Vector3 bottomLeft = new Vector3(size, 0, 0);
-    Vector3 bottomRight = new Vector3(size, 0, size);
+    float ratio = 3f * shape + 1f;
+    Vector3 topRight = new Vector3(0, 0, ((dungeonSize - 1) / ratio) * tileSize);
+    Vector3 bottomLeft = new Vector3(((dungeonSize - 1) * ratio) * tileSize, 0, 0);
+    Vector3 bottomRight = new Vector3(((dungeonSize - 1) * ratio) * tileSize, 0, ((dungeonSize - 1) / ratio) * tileSize);
 
     Gizmos.DrawLine(Vector2.zero, topRight);
     Gizmos.DrawLine(topRight, bottomRight);

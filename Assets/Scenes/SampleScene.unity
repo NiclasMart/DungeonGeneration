@@ -156,8 +156,9 @@ MonoBehaviour:
   tileSize: 4
   dungeonSize: 100
   roomCount: 100
-  compressFactor: 1
-  connectionDegree: 1
+  compressFactor: 0.709
+  connectionDegree: 0.912
+  shape: 0.33333
   roomDimensionX: {x: 5, y: 15}
   roomDimensionY: {x: 5, y: 15}
   roomDistance: {x: 5, y: 15}

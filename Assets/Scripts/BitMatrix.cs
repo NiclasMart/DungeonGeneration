@@ -1,19 +1,22 @@
 using System;
 using System.Collections;
+using UnityEngine;
 
 class BitMatrix
 {
   public BitArray[] data; // an array of arrays
-  public int size; // dimension
+  public Vector2Int size; // dimension
 
-  public BitMatrix(int n)
+  public BitMatrix(int n, float ratio)
   {
-    this.data = new BitArray[n];
+    if (n == 0) throw new Exception("Cant Create BitMatrix of size 0.");
+
+    size = new Vector2Int((int)(n / ratio), (int)(n * ratio));
+    this.data = new BitArray[size.x];
     for (int i = 0; i < data.Length; ++i)
     {
-      this.data[i] = new BitArray(n);
+      this.data[i] = new BitArray(size.y);
     }
-    this.size = n;
   }
 
   public bool GetValue(int col, int row)
@@ -44,7 +47,7 @@ class BitMatrix
   {
     if (a.size != b.size) throw new Exception("Adding two BitMatrices of diffeent sizes is not allowed!");
 
-    for (int i = 0; i < a.size; i++)
+    for (int i = 0; i < a.size.x; i++)
     {
       a.data[i].Or(b.data[i]);
     }
