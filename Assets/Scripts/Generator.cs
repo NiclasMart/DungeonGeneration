@@ -58,18 +58,6 @@ public class Generator : MonoBehaviour
     if (generateColumns) GenerateColumns();
   }
 
-  private void DebugInformation()
-  {
-    Debug.Log("Placed " + currentRoomCount + " rooms.");
-
-    float connectionCount = 0;
-    foreach (var room in rooms)
-    {
-      connectionCount += room.connections.Count;
-    }
-    Debug.Log("Average Connection Count per room: " + connectionCount / rooms.Count);
-  }
-
   public void StartGeneration()
   {
     Room newRoom = GenerateRoom();
@@ -83,14 +71,12 @@ public class Generator : MonoBehaviour
     GenerateRecursivly(newRoom);
   }
 
-  float roomProbebility = 1f;
   Queue<Room> newRoomsQueue = new Queue<Room>();
   void GenerateRecursivly(Room parentRoom)
   {
     for (int i = 0; i < 4; i++)
     {
       if (currentRoomCount >= roomCount) continue;
-      if (Random.Range(0f, 1f) > roomProbebility) continue;
 
       //generate room with path in several attempts
       for (int attempt = 0; attempt < 1 + compressFactor * 20; attempt++)
@@ -104,13 +90,6 @@ public class Generator : MonoBehaviour
     {
       GenerateRecursivly(newRoomsQueue.Dequeue());
     }
-  }
-
-  Room GenerateRoom()
-  {
-    int sizeX = Random.Range(roomDimensionX.x, roomDimensionX.y);
-    int sizeY = Random.Range(roomDimensionY.x, roomDimensionY.y);
-    return new Room(new Vector2Int(sizeX, sizeY));
   }
 
   private bool Generate(Room parentRoom, int i)
@@ -163,6 +142,7 @@ public class Generator : MonoBehaviour
       Vector2Int randomPathOffset = new Vector2Int(pathXOffset, pathYOffset);
       pathOrigin += randomPathOffset;
 
+      //create new path and check if its valid
       Path newPath = CreatePath(pathOrigin, randomRoomDistanceOffset, direction, axis);
       if (!PathPositionIsValid(newPath, axis)) return false;
 
@@ -173,6 +153,13 @@ public class Generator : MonoBehaviour
     }
     SaveNewRoom(parentRoom, newRoom);
     return true;
+  }
+
+  Room GenerateRoom()
+  {
+    int sizeX = Random.Range(roomDimensionX.x, roomDimensionX.y);
+    int sizeY = Random.Range(roomDimensionY.x, roomDimensionY.y);
+    return new Room(new Vector2Int(sizeX, sizeY));
   }
 
   private Path CreatePath(Vector2Int pathOrigin, int length, int direction, int axis)
@@ -314,16 +301,12 @@ public class Generator : MonoBehaviour
   {
     for (int attempts = 0; attempts < compressFactor * 10; attempts++)
     {
-      IterateOverMap();
-    }
-  }
-
-  private void IterateOverMap()
-  {
-    for (int i = 0; i < rooms.Count; i++)
-    {
-      Room startRoom = rooms[i];
-      GenerateRecursivly(startRoom);
+      //iterate over each room and try to generate additional rooms
+      for (int i = 0; i < rooms.Count; i++)
+      {
+        Room startRoom = rooms[i];
+        GenerateRecursivly(startRoom);
+      }
     }
   }
 
@@ -343,6 +326,7 @@ public class Generator : MonoBehaviour
     if (leafNode.connections.Contains(node) || node.connections.Contains(leafNode)) return;
 
     Path newPath = null;
+    //generate path ehich is oriented in y direction
     if (node.GetBottomRight().x >= leafNode.position.x + pathWidth && node.position.x + pathWidth <= leafNode.GetBottomRight().x)
     {
       int minXOffset = Mathf.Max(0, node.position.x - leafNode.position.x);
@@ -359,6 +343,7 @@ public class Generator : MonoBehaviour
       newPath = CreatePath(pathOrigin, Mathf.Abs(leafNode.position.y - node.position.y) - distanceOffset, direction, 1);
       if (!PathPositionIsValid(newPath, 1)) newPath = null;
     }
+    //generate path which is oriented in x direction
     else if (node.GetBottomRight().y >= leafNode.position.y + pathWidth && node.position.y + pathWidth <= leafNode.GetBottomRight().y)
     {
       int minYOffset = Mathf.Max(0, node.position.y - leafNode.position.y);
@@ -460,6 +445,18 @@ public class Generator : MonoBehaviour
         }
       }
     }
+  }
+
+  private void DebugInformation()
+  {
+    Debug.Log("Placed " + currentRoomCount + " rooms.");
+
+    float connectionCount = 0;
+    foreach (var room in rooms)
+    {
+      connectionCount += room.connections.Count;
+    }
+    Debug.Log("Average Connection Count per room: " + connectionCount / rooms.Count);
   }
 
   void SetDebugBlock(Vector2Int pos)
