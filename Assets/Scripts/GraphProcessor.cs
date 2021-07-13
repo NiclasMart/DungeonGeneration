@@ -38,12 +38,35 @@ public class GraphProcessor
 
     foreach (var node in graph)
     {
-      if (node.GetCenter().x < topEdge.GetCenter().x) topEdge = node;
-      if (node.GetCenter().x > bottomEdge.GetCenter().x) bottomEdge = node;
-      if (node.GetCenter().y < leftEdge.GetCenter().y) leftEdge = node;
-      if (node.GetCenter().y > rightEdge.GetCenter().y) rightEdge = node;
+      if (node.GetCenter().y < topEdge.GetCenter().y) topEdge = node;
+      if (node.GetCenter().y > bottomEdge.GetCenter().y) bottomEdge = node;
+      if (node.GetCenter().x < leftEdge.GetCenter().x) leftEdge = node;
+      if (node.GetCenter().x > rightEdge.GetCenter().x) rightEdge = node;
     }
 
-    return new Room[] { topEdge, bottomEdge, leftEdge, rightEdge };
+    return new Room[] { topEdge, rightEdge, bottomEdge, leftEdge };
+  }
+
+  public static List<Room> CalculateConvexHull(List<Room> graph, Room firstNode)
+  {
+    List<Room> convexHullSet = new List<Room>();
+    Room startNode = firstNode, endNode;
+    do
+    {
+      convexHullSet.Add(startNode);
+      startNode.isEdgeRoom = true;
+      endNode = graph[0];
+      if (startNode == endNode) endNode = graph[1];
+
+      for (int j = 0; j < graph.Count; j++)
+      {
+        float angle = Vector2.SignedAngle(endNode.GetCenter() - startNode.GetCenter(), startNode.GetCenter() - graph[j].GetCenter());
+        if (endNode == startNode || angle < 0) endNode = graph[j];
+      }
+      startNode = endNode;
+
+    } while (endNode != convexHullSet[0]);
+
+    return convexHullSet;
   }
 }

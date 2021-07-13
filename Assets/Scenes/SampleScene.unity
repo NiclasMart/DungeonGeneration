@@ -159,7 +159,7 @@ MonoBehaviour:
   pathWidth: 2
   compressFactor: 1
   connectionDegree: 1
-  shape: 0.847
+  shape: 0.35
   roomDimensionX: {x: 5, y: 15}
   roomDimensionY: {x: 5, y: 15}
   roomDistance: {x: 5, y: 15}

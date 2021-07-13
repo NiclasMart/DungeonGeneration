@@ -20,11 +20,14 @@ public class Generator : MonoBehaviour
   [SerializeField] Vector2Int roomDimensionY = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDistance = new Vector2Int(0, 10);
 
+  enum RoomPosition { Edge, Center, Random };
   [Header("Path Parameters")]
-  [SerializeField] bool startRoomHasEdgePosition;
-  [SerializeField] bool endRoomHasEdgePosition;
+  [SerializeField] RoomPosition startRoomPosition;
+  [SerializeField] RoomPosition endRoomPosition;
+  [SerializeField, Min(0)] float minPathLength;
+  [SerializeField, Min(1)] float maxPathLength;
   [SerializeField] bool useFullDungeonSize;
-  [SerializeField] float minPathLength, maxPathLength;
+
 
   [Header("Other")]
   [Tooltip("Defines up to which ratio a room is categorized as squared. The value must be larger than 1 ( 1 = square).")]
@@ -70,21 +73,15 @@ public class Generator : MonoBehaviour
     if (generateColumns) GenerateColumns();
   }
 
+  Room[] outerRooms;
+  List<Room> edgeRooms;
   private void GeneratePath()
   {
-    if (useFullDungeonSize)
+    outerRooms = GraphProcessor.GetEdgeRooms(rooms);
+
+    foreach (var room in GraphProcessor.CalculateConvexHull(rooms, outerRooms[0]))
     {
-      Room[] edgeRooms = GraphProcessor.GetEdgeRooms(rooms);
-      if (Vector2Int.Distance(edgeRooms[0].GetCenter(), edgeRooms[1].GetCenter()) > Vector2Int.Distance(edgeRooms[2].GetCenter(), edgeRooms[3].GetCenter()))
-      {
-        SetDebugBlock(edgeRooms[0].position);
-        SetDebugBlock(edgeRooms[1].position);
-      }
-      else
-      {
-        SetDebugBlock(edgeRooms[2].position);
-        SetDebugBlock(edgeRooms[3].position);
-      }
+      SetDebugBlock(room.position);
     }
   }
 
