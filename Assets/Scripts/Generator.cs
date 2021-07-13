@@ -24,8 +24,8 @@ public class Generator : MonoBehaviour
   [Header("Path Parameters")]
   [SerializeField] RoomPosition startRoomPosition;
   [SerializeField] RoomPosition endRoomPosition;
-  [SerializeField, Min(0)] float minPathLength;
-  [SerializeField, Min(1)] float maxPathLength;
+  [SerializeField, Min(0)] int minPathLength;
+  [SerializeField, Min(1)] int maxPathLength;
   [SerializeField] bool useFullDungeonSize;
 
 
@@ -78,10 +78,45 @@ public class Generator : MonoBehaviour
   private void GeneratePath()
   {
     outerRooms = GraphProcessor.GetEdgeRooms(rooms);
-
-    foreach (var room in GraphProcessor.CalculateConvexHull(rooms, outerRooms[0]))
+    if (useFullDungeonSize)
     {
-      SetDebugBlock(room.position);
+
+      if (Vector2Int.Distance(outerRooms[0].GetCenter(), outerRooms[1].GetCenter()) > Vector2Int.Distance(outerRooms[2].GetCenter(), outerRooms[3].GetCenter()))
+      {
+        SetDebugBlock(outerRooms[0].position);
+        SetDebugBlock(outerRooms[2].position);
+      }
+      else
+      {
+        SetDebugBlock(outerRooms[1].position);
+        SetDebugBlock(outerRooms[3].position);
+      }
+    }
+    else
+    {
+      edgeRooms = GraphProcessor.CalculateConvexHull(rooms, outerRooms[0]);
+      Room startRoom = GetRoomForPathGeneration(startRoomPosition);
+      SetDebugBlock(startRoom.GetCenter() + Vector2Int.one);
+
+      List<Room> path = GraphProcessor.GeneratePath(rooms, startRoom, minPathLength, maxPathLength);
+      Debug.Log("PathLenth: " + (path.Count - 1));
+      foreach (var room in path)
+      {
+        SetDebugBlock(room.position);
+      }
+    }
+  }
+
+  private Room GetRoomForPathGeneration(RoomPosition type)
+  {
+    switch (type)
+    {
+      case RoomPosition.Edge:
+        return edgeRooms[Random.Range(0, edgeRooms.Count)];
+      case RoomPosition.Center:
+        return rooms[0];
+      default:
+        return rooms[Random.Range(0, rooms.Count)];
     }
   }
 

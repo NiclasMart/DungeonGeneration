@@ -7,7 +7,8 @@ public class Room
   public Vector2Int position;
   public List<Room> connections = new List<Room>();
   public bool isEdgeRoom;
-  public int pathDistance = 0;
+  public float pathDistance = Mathf.Infinity;
+  public Room pathParent;
 
   public Room(Vector2Int size)
   {

@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -68,5 +66,52 @@ public class GraphProcessor
     } while (endNode != convexHullSet[0]);
 
     return convexHullSet;
+  }
+
+  public static List<Room> GeneratePath(List<Room> graph, Room startNode, int minPathLength, int maxPathLength)
+  {
+    List<Room> path = new List<Room>();
+    startNode.pathDistance = 0;
+    startNode.pathParent = null;
+
+    EvaluateGraphConnections(startNode, minPathLength);
+
+    Room currentNode = GetEndNode(graph, minPathLength, maxPathLength);
+    do
+    {
+      path.Add(currentNode);
+      currentNode = currentNode.pathParent;
+    } while (currentNode != null);
+
+    path.Reverse();
+    return path;
+  }
+
+  private static Room GetEndNode(List<Room> graph, int minPathLength, int maxPathLength)
+  {
+    List<Room> validCanidates = new List<Room>();
+    Room closestCanidate = graph[0];
+    foreach (var node in graph)
+    {
+      if (node.pathDistance > minPathLength && node.pathDistance < maxPathLength) validCanidates.Add(node);
+      else if (node.pathDistance > closestCanidate.pathDistance) closestCanidate = node;
+    }
+
+    if (validCanidates.Count == 0) return closestCanidate;
+    else return validCanidates[Random.Range(0, validCanidates.Count)];
+  }
+
+  static void EvaluateGraphConnections(Room parentNode, int minPathLength)
+  {
+    foreach (var node in parentNode.connections)
+    {
+      float distance = parentNode.pathDistance + 1;
+      if (node.pathDistance < distance) continue;
+
+      node.pathDistance = distance;
+      node.pathParent = parentNode;
+
+      EvaluateGraphConnections(node, minPathLength);
+    }
   }
 }
