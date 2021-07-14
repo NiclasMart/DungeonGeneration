@@ -164,10 +164,12 @@ MonoBehaviour:
   roomDimensionY: {x: 5, y: 15}
   roomDistance: {x: 5, y: 15}
   startRoomPosition: 2
-  endRoomPosition: 2
+  endRoomPosition: 0
   minPathLength: 5
   maxPathLength: 10
   useFullDungeonSize: 0
+  amount: 5
+  minimalDistanceFromStartRoom: 5
   minColumnRoomSize: 5
   columnProbability: 0.3
   columnBluePrint: {fileID: 2800000, guid: fd71474ada0eb5149aa62d5264838341, type: 3}
