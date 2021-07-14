@@ -157,16 +157,16 @@ MonoBehaviour:
   dungeonSize: 500
   roomCount: 100
   pathWidth: 2
-  compressFactor: 0.429
-  connectionDegree: 0.532
-  shape: 0.582
+  compressFactor: 0.557
+  connectionDegree: 0.448
+  shape: 0.31
   roomDimensionX: {x: 5, y: 15}
   roomDimensionY: {x: 5, y: 15}
   roomDistance: {x: 5, y: 15}
   startRoomPosition: 2
-  endRoomPosition: 0
-  minPathLength: 8
-  maxPathLength: 15
+  endRoomPosition: 2
+  minPathLength: 5
+  maxPathLength: 10
   useFullDungeonSize: 0
   minColumnRoomSize: 5
   columnProbability: 0.3

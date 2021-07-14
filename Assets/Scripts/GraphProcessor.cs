@@ -68,31 +68,51 @@ public class GraphProcessor
     return convexHullSet;
   }
 
-  public static List<Room> GeneratePath(List<Room> graph, Room startNode, int minPathLength, int maxPathLength)
+  public static List<Room> GeneratePath(List<Room> graph, Room startNode, int minPathLength, int maxPathLength, bool endRoomLiesOnEdge)
   {
     List<Room> path = new List<Room>();
     startNode.pathDistance = 0;
     startNode.pathParent = null;
 
-    EvaluateGraphConnections(startNode, minPathLength);
+    EvaluateGraphConnections(startNode);
 
-    Room currentNode = GetEndNode(graph, minPathLength, maxPathLength);
+    Room currentNode = GetEndNode(graph, minPathLength, maxPathLength, endRoomLiesOnEdge);
+
+    return GetShortestPathFromOriginToNode(currentNode);
+  }
+
+  // Evaluates Graph and returns shortest path between the two given rooms
+  public static List<Room> GetShortestPathBetweenNodes(Room startNode, Room endNode)
+  {
+    startNode.pathDistance = 0;
+    startNode.pathParent = null;
+    EvaluateGraphConnections(startNode);
+    return GetShortestPathFromOriginToNode(endNode);
+  }
+
+  //graph must be evaluated beforhand, returns the path between the 
+  //origin node for which the graph was evaluated and the given node
+  public static List<Room> GetShortestPathFromOriginToNode(Room node)
+  {
+    List<Room> path = new List<Room>();
     do
     {
-      path.Add(currentNode);
-      currentNode = currentNode.pathParent;
-    } while (currentNode != null);
-
+      path.Add(node);
+      node = node.pathParent;
+    } while (node != null);
     path.Reverse();
     return path;
   }
 
-  private static Room GetEndNode(List<Room> graph, int minPathLength, int maxPathLength)
+  //dependent on the given parameters finds an end room
+  //if parameters can't be fullfilled, returns the closest propertys
+  private static Room GetEndNode(List<Room> graph, int minPathLength, int maxPathLength, bool endRoomLiesOnEdge)
   {
     List<Room> validCanidates = new List<Room>();
     Room closestCanidate = graph[0];
     foreach (var node in graph)
     {
+      if (endRoomLiesOnEdge && !node.isEdgeRoom) continue;
       if (node.pathDistance > minPathLength && node.pathDistance < maxPathLength) validCanidates.Add(node);
       else if (node.pathDistance > closestCanidate.pathDistance) closestCanidate = node;
     }
@@ -101,7 +121,9 @@ public class GraphProcessor
     else return validCanidates[Random.Range(0, validCanidates.Count)];
   }
 
-  static void EvaluateGraphConnections(Room parentNode, int minPathLength)
+  //evaluates the graph and marks the shortest path from the parent
+  //node to each other node within the graph
+  public static void EvaluateGraphConnections(Room parentNode)
   {
     foreach (var node in parentNode.connections)
     {
@@ -111,7 +133,7 @@ public class GraphProcessor
       node.pathDistance = distance;
       node.pathParent = parentNode;
 
-      EvaluateGraphConnections(node, minPathLength);
+      EvaluateGraphConnections(node);
     }
   }
 }

@@ -20,7 +20,7 @@ public class Generator : MonoBehaviour
   [SerializeField] Vector2Int roomDimensionY = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDistance = new Vector2Int(0, 10);
 
-  enum RoomPosition { Edge, Center, Random };
+  enum RoomPosition { Center, Edge, Random };
   [Header("Path Parameters")]
   [SerializeField] RoomPosition startRoomPosition;
   [SerializeField] RoomPosition endRoomPosition;
@@ -39,12 +39,12 @@ public class Generator : MonoBehaviour
   [SerializeField] GameObject groundPrefab;
   [SerializeField] GameObject wallPrefab;
   [SerializeField] GameObject debugCube;
-
   [SerializeField] bool generateColumns = true;
 
   BitMatrix roomMatrix, pathMatrix;
   List<Room> rooms = new List<Room>();
   List<Path> paths = new List<Path>();
+  Room startRoom, endRoom;
   int currentRoomCount = 1;
   Vector2Int shapeArea;
 
@@ -71,53 +71,6 @@ public class Generator : MonoBehaviour
     DebugInformation();
 
     if (generateColumns) GenerateColumns();
-  }
-
-  Room[] outerRooms;
-  List<Room> edgeRooms;
-  private void GeneratePath()
-  {
-    outerRooms = GraphProcessor.GetEdgeRooms(rooms);
-    if (useFullDungeonSize)
-    {
-
-      if (Vector2Int.Distance(outerRooms[0].GetCenter(), outerRooms[1].GetCenter()) > Vector2Int.Distance(outerRooms[2].GetCenter(), outerRooms[3].GetCenter()))
-      {
-        SetDebugBlock(outerRooms[0].position);
-        SetDebugBlock(outerRooms[2].position);
-      }
-      else
-      {
-        SetDebugBlock(outerRooms[1].position);
-        SetDebugBlock(outerRooms[3].position);
-      }
-    }
-    else
-    {
-      edgeRooms = GraphProcessor.CalculateConvexHull(rooms, outerRooms[0]);
-      Room startRoom = GetRoomForPathGeneration(startRoomPosition);
-      SetDebugBlock(startRoom.GetCenter() + Vector2Int.one);
-
-      List<Room> path = GraphProcessor.GeneratePath(rooms, startRoom, minPathLength, maxPathLength);
-      Debug.Log("PathLenth: " + (path.Count - 1));
-      foreach (var room in path)
-      {
-        SetDebugBlock(room.position);
-      }
-    }
-  }
-
-  private Room GetRoomForPathGeneration(RoomPosition type)
-  {
-    switch (type)
-    {
-      case RoomPosition.Edge:
-        return edgeRooms[Random.Range(0, edgeRooms.Count)];
-      case RoomPosition.Center:
-        return rooms[0];
-      default:
-        return rooms[Random.Range(0, rooms.Count)];
-    }
   }
 
   public void StartGeneration()
@@ -487,6 +440,62 @@ public class Generator : MonoBehaviour
     wall.transform.LookAt(new Vector3(directionY * tileSize, 0, directionX * tileSize));
   }
 
+  Room[] outerRooms;
+  List<Room> edgeRooms;
+  private void GeneratePath()
+  {
+    outerRooms = GraphProcessor.GetEdgeRooms(rooms);
+    if (useFullDungeonSize)
+    {
+      if (Vector2Int.Distance(outerRooms[0].GetCenter(), outerRooms[2].GetCenter()) > Vector2Int.Distance(outerRooms[1].GetCenter(), outerRooms[3].GetCenter()))
+      {
+        startRoom = outerRooms[0];
+        endRoom = outerRooms[2];
+      }
+      else
+      {
+        startRoom = outerRooms[1];
+        endRoom = outerRooms[3];
+      }
+    }
+    else
+    {
+      //if both rooms should be within the center, no further calculation needed
+      if (startRoomPosition == RoomPosition.Center && endRoomPosition == RoomPosition.Center)
+      {
+        startRoom = endRoom = rooms[0];
+        return;
+      }
+
+      //only calculate convex hull if needed
+      if (startRoomPosition == RoomPosition.Edge || endRoomPosition == RoomPosition.Edge)
+        edgeRooms = GraphProcessor.CalculateConvexHull(rooms, outerRooms[0]);
+
+      //calculation is started from the most specific to generic room
+      //center > edge > random
+      Room calculationOriginRoom = GetRoomForPathGeneration((RoomPosition)Mathf.Min((int)startRoomPosition, (int)endRoomPosition));
+      bool endRoomLiesOnEdge = Mathf.Max((int)startRoomPosition, (int)endRoomPosition) == 1;
+      List<Room> path = GraphProcessor.GeneratePath(rooms, calculationOriginRoom, minPathLength, maxPathLength, endRoomLiesOnEdge);
+
+      //depending on the initial room types choose start and end room from genereded path
+      (startRoom, endRoom) = (int)startRoomPosition <= (int)endRoomPosition ? (path[0], path[path.Count - 1]) : (path[path.Count - 1], path[0]);
+
+    }
+  }
+
+  private Room GetRoomForPathGeneration(RoomPosition type)
+  {
+    switch (type)
+    {
+      case RoomPosition.Edge:
+        return edgeRooms[Random.Range(0, edgeRooms.Count)];
+      case RoomPosition.Center:
+        return rooms[0];
+      default:
+        return rooms[Random.Range(0, rooms.Count)];
+    }
+  }
+
   private void GenerateColumns()
   {
     // Texture2D workingCopy = new Texture2D(8, 8);
@@ -514,6 +523,13 @@ public class Generator : MonoBehaviour
     }
   }
 
+
+
+  //---------------------------------------------------------------------------------------------------
+  // DEBUG FUNCTIONALITY
+  //---------------------------------------------------------------------------------------------------
+
+  List<Room> debugPath;
   private void DebugInformation()
   {
     float shapeAreaSize = Mathf.Max(dungeonSize - (shape * dungeonSize), 2 * roomDimensionX.x);
@@ -527,6 +543,14 @@ public class Generator : MonoBehaviour
       connectionCount += room.connections.Count;
     }
     Debug.Log("Average Connection Count per room: " + connectionCount / rooms.Count);
+
+    //calculate debug path
+    if (useFullDungeonSize)
+    {
+      debugPath = GraphProcessor.GetShortestPathBetweenNodes(startRoom, endRoom);
+    }
+    else debugPath = GraphProcessor.GetShortestPathFromOriginToNode(startRoomPosition <= endRoomPosition ? endRoom : startRoom);
+    Debug.Log("Path Length: " + (debugPath.Count - 1));
   }
 
   void SetDebugBlock(Vector2Int pos)
@@ -543,6 +567,8 @@ public class Generator : MonoBehaviour
   {
     DrawDungeonAreaOutline();
     DrawDungeonTree();
+    DrawShapeArea();
+    DrawPath();
   }
 
   private void DrawDungeonTree()
@@ -571,7 +597,10 @@ public class Generator : MonoBehaviour
     Gizmos.DrawLine(topRight, bottomRight);
     Gizmos.DrawLine(bottomRight, bottomLeft);
     Gizmos.DrawLine(bottomLeft, Vector3.zero);
+  }
 
+  private void DrawShapeArea()
+  {
     Gizmos.color = Color.green;
 
     float shapeAreaSize = Mathf.Max(dungeonSize - (shape * dungeonSize), 2 * roomDimensionX.x);
@@ -580,5 +609,20 @@ public class Generator : MonoBehaviour
 
     Gizmos.DrawLine(new Vector3(-10, 0, 4 * leftBorder), new Vector3(4 * dungeonSize + 10, 0, 4 * leftBorder));
     Gizmos.DrawLine(new Vector3(-10, 0, 4 * rightBorder), new Vector3(4 * dungeonSize + 10, 0, 4 * rightBorder));
+  }
+
+  private void DrawPath()
+  {
+    if (debugPath == null) return;
+    Gizmos.color = Color.red;
+    for (int i = 1; i < debugPath.Count; i++)
+    {
+      Gizmos.DrawLine(debugPath[i - 1].GetCenterWorld() * tileSize, debugPath[i].GetCenterWorld() * tileSize);
+    }
+
+    Gizmos.color = Color.yellow;
+    Gizmos.DrawSphere(startRoom.GetCenterWorld() * tileSize, 8f);
+    Gizmos.color = Color.magenta;
+    Gizmos.DrawSphere(endRoom.GetCenterWorld() * tileSize, 8f);
   }
 }
