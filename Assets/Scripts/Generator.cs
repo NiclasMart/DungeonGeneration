@@ -557,11 +557,8 @@ public class Generator : MonoBehaviour
     Debug.Log("Average Connection Count per room: " + connectionCount / roomsGraph.Count);
 
     //calculate debug path
-    if (useFullDungeonSize)
-    {
-      debugPath = GraphProcessor.GetShortestPathBetweenNodes(roomsGraph, startRoom, endRoom);
-    }
-    else debugPath = GraphProcessor.GetShortestPathFromOriginToNode(startRoomPosition <= endRoomPosition ? endRoom : startRoom);
+    debugPath = GraphProcessor.GetShortestPathBetweenNodes(roomsGraph, startRoom, endRoom);
+    
     Debug.Log("Path Length: " + (debugPath.Count - 1));
   }
 
