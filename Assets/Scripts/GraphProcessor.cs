@@ -70,8 +70,6 @@ public class GraphProcessor
 
   public static List<Room> GeneratePath(Graph graph, Room startNode, int minPathLength, int maxPathLength, bool endNodeMustLieOnEdge)
   {
-    List<Room> path = new List<Room>();
-
     EvaluateGraphConnections(graph, startNode);
     Room currentNode = GetRandomeNodeFromGraph(graph, minPathLength, maxPathLength, endNodeMustLieOnEdge);
 
@@ -112,6 +110,7 @@ public class GraphProcessor
     graph.originNode = originNode;
   }
 
+  static Queue<Room> callQueue = new Queue<Room>();
   static void SimplifiedDijkstraRecursion(Graph graph, Room parentNode)
   {
     float distance = parentNode.pathDistance + 1;
@@ -122,8 +121,12 @@ public class GraphProcessor
 
       node.pathDistance = distance;
       node.pathParent = parentNode;
+      callQueue.Enqueue(node);
+    }
 
-      SimplifiedDijkstraRecursion(graph, node);
+    while (callQueue.Count > 0)
+    {
+      SimplifiedDijkstraRecursion(graph, callQueue.Dequeue());
     }
   }
 
@@ -178,16 +181,14 @@ public class GraphProcessor
   //if parameters can't be fullfilled, returns the node closest to the given propertys
   private static Room GetRandomeNodeFromGraph(Graph graph, int minPathLength, int maxPathLength, bool nodeMustLieOnEdge)
   {
+    minPathLength = Mathf.Min(graph.maxDistanceFromOrigin, minPathLength);
     List<Room> validCanidates = new List<Room>();
-    Room closestCanidate = graph[0];
     foreach (var node in graph.nodes)
     {
       if (nodeMustLieOnEdge && !node.isEdgeRoom) continue;
-      if (node.pathDistance > minPathLength && node.pathDistance < maxPathLength) validCanidates.Add(node);
-      else if (node.pathDistance > closestCanidate.pathDistance) closestCanidate = node;
+      if (node.pathDistance >= minPathLength && node.pathDistance <= maxPathLength) validCanidates.Add(node);
     }
 
-    if (validCanidates.Count == 0) return closestCanidate;
-    else return validCanidates[Random.Range(0, validCanidates.Count)];
+    return validCanidates[Random.Range(0, validCanidates.Count)];
   }
 }
