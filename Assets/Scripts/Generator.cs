@@ -19,6 +19,7 @@ public class Generator : MonoBehaviour
   [SerializeField] Vector2Int roomDimensionX = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDimensionY = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDistance = new Vector2Int(0, 10);
+  [SerializeField] Texture2D roomBluePrint;
 
   enum RoomPosition { Center, Edge, Random };
   [Header("Path Parameters")]
@@ -64,6 +65,8 @@ public class Generator : MonoBehaviour
     pathMatrix = new BitMatrix(dungeonSize);
 
     roomsGraph = new Graph();
+
+    BluePrintRoom testRoom = new BluePrintRoom(Vector2Int.one, roomBluePrint);
   }
 
   private void Start()
@@ -121,6 +124,7 @@ public class Generator : MonoBehaviour
 
   private bool Generate(Room parentRoom, int i)
   {
+    //north 11 - 3, west 00 - 0, south 10 - 2, west 01 - 1
     int axis = (i >> 1) & 1; //if x (axis == 0) or y (axis == 1)
     int direction = (i & 1) == 1 ? -1 : 1; //if positive or negative
     int useParentRoomOffset = (i ^ 1) & 1; //use room size as offset parameter
@@ -184,9 +188,19 @@ public class Generator : MonoBehaviour
 
   Room GenerateRoom()
   {
-    int sizeX = Random.Range(roomDimensionX.x, roomDimensionX.y);
-    int sizeY = Random.Range(roomDimensionY.x, roomDimensionY.y);
-    return new Room(new Vector2Int(sizeX, sizeY));
+    Room newRoom;
+    if (Random.Range(0, 1f) < 0.5f)
+    {
+      newRoom = new BluePrintRoom(Vector2Int.one, roomBluePrint);
+
+    }
+    else
+    {
+      int sizeX = Random.Range(roomDimensionX.x, roomDimensionX.y);
+      int sizeY = Random.Range(roomDimensionY.x, roomDimensionY.y);
+      newRoom = new Room(new Vector2Int(sizeX, sizeY));
+    }
+    return newRoom;
   }
   Room GenerateRoom(int xMaxSize)
   {
@@ -223,7 +237,11 @@ public class Generator : MonoBehaviour
     {
       for (int j = room.position.y; j < room.position.y + room.size.y; j++)
       {
-        roomMatrix.SetValue(i, j, true);
+        if (room is BluePrintRoom)
+        {
+          if ((room as BluePrintRoom).GetBlueprintPixel(i - room.position.x, j - room.position.y) == Color.black) roomMatrix.SetValue(i, j, true);
+        }
+        else roomMatrix.SetValue(i, j, true);
       }
     }
   }
@@ -317,12 +335,12 @@ public class Generator : MonoBehaviour
   validation space is one block wider than the room size itself to avoid contact points */
   private bool EnoughSpaceForRoomPlacement(Room room)
   {
-    int roomSaveSpace = 1;
-    for (int i = room.position.x - roomSaveSpace; i < room.position.x + room.size.x + roomSaveSpace; i++)
+    for (int i = room.position.x - 1; i < room.position.x + room.size.x + 1; i++)
     {
-      for (int j = room.position.y - roomSaveSpace; j < room.position.y + room.size.y + roomSaveSpace; j++)
+      for (int j = room.position.y - 1; j < room.position.y + room.size.y + 1; j++)
       {
         if (i < shapeArea.x || i >= shapeArea.y || j < 0 || j >= roomMatrix.size) continue;
+        //if (room is BluePrintRoom && (room as BluePrintRoom).GetBlueprintPixel(i - room.position.x + 1, j - room.position.y + 1) != Color.black) continue;
         if (roomMatrix.GetValue(i, j)) return false;
         if (pathMatrix.GetValue(i, j)) return false;
       }
@@ -558,7 +576,7 @@ public class Generator : MonoBehaviour
 
     //calculate debug path
     debugPath = GraphProcessor.GetShortestPathBetweenNodes(roomsGraph, startRoom, endRoom);
-    
+
     Debug.Log("Path Length: " + (debugPath.Count - 1));
   }
 

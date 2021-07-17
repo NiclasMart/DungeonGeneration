@@ -159,15 +159,16 @@ MonoBehaviour:
   pathWidth: 2
   compressFactor: 0.557
   connectionDegree: 0.448
-  shape: 0.31
+  shape: 0.841
   roomDimensionX: {x: 5, y: 15}
   roomDimensionY: {x: 5, y: 15}
   roomDistance: {x: 5, y: 15}
-  startRoomPosition: 1
-  endRoomPosition: 2
+  roomBluePrint: {fileID: 2800000, guid: 409a0657a950dde49b86e66eb2b03013, type: 3}
+  startRoomPosition: 2
+  endRoomPosition: 0
   minPathLength: 5
   maxPathLength: 10
-  useFullDungeonSize: 0
+  useFullDungeonSize: 1
   amount: 5
   minimalDistanceFromStartRoom: 3
   minColumnRoomSize: 5
@@ -198,13 +199,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 333698600}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7378288cefad43747a3fd2b7502accc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   wallPrefab: {fileID: 7779381877309823848, guid: 2f6c4572e07a60b43b00e1c4f489a806, type: 3}
   groundPrefab: {fileID: 916917378494744782, guid: 98f5378049f9b5745a77677f581b32b1, type: 3}
+  rotaion: 90
 --- !u!1001 &341430368
 PrefabInstance:
   m_ObjectHideFlags: 0
