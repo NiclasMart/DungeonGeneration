@@ -157,16 +157,16 @@ MonoBehaviour:
   dungeonSize: 500
   roomCount: 100
   pathWidth: 2
-  compressFactor: 0.557
-  connectionDegree: 0.448
-  shape: 0.841
+  compressFactor: 0
+  connectionDegree: 0
+  shape: 0
   roomDimensionX: {x: 5, y: 15}
   roomDimensionY: {x: 5, y: 15}
   roomDistance: {x: 5, y: 15}
-  roomBluePrint: {fileID: 2800000, guid: 409a0657a950dde49b86e66eb2b03013, type: 3}
+  roomBluePrint: {fileID: 2800000, guid: 4c2ea6514d422f44d8043f3389ec9927, type: 3}
   startRoomPosition: 2
   endRoomPosition: 0
-  minPathLength: 5
+  minPathLength: 1
   maxPathLength: 10
   useFullDungeonSize: 1
   amount: 5
@@ -199,7 +199,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 333698600}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7378288cefad43747a3fd2b7502accc5, type: 3}
   m_Name: 

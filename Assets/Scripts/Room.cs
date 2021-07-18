@@ -27,7 +27,7 @@ public class Room
 
   public Vector2Int GetCenter()
   {
-    return position + (size / 2);
+    return position + (GetSize() / 2);
   }
 
   public Vector3 GetCenterWorld()
@@ -37,12 +37,12 @@ public class Room
 
   public Vector2Int GetBottomRight()
   {
-    return position + size;
+    return position + GetSize();
   }
 
   public Vector2Int GetBottomLeft()
   {
-    return position + new Vector2Int(0, size.y - 1);
+    return position + new Vector2Int(0, GetSize().y - 1);
   }
 
   public void AddConnection(Room room)
