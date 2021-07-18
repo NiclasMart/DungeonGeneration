@@ -416,12 +416,16 @@ public class Generator : MonoBehaviour
       direction = connectionRoom.position.y - room.position.y < 0 ? -1 : 1;
       int yOffset = direction == -1 ? -1 : room.size.y;
       int distanceOffset = direction == -1 ? connectionRoom.size.y : room.size.y;
+      int length = Mathf.Abs(room.position.y - connectionRoom.position.y) - distanceOffset;
 
-      Vector2Int offset = new Vector2Int(xOffset, yOffset);
-      Vector2Int pathOrigin = room.position + offset;
-
-      newPath = CreatePath(pathOrigin, Mathf.Abs(room.position.y - connectionRoom.position.y) - distanceOffset, direction, 1);
-      if (!PathPositionIsValid(newPath, 1)) newPath = null;
+      //if path length lies within the valid size try to create path
+      if (length >= minPathLength && length <= maxPathLength)
+      {
+        Vector2Int offset = new Vector2Int(xOffset, yOffset);
+        Vector2Int pathOrigin = room.position + offset;
+        newPath = CreatePath(pathOrigin, length, direction, 1);
+        if (!PathPositionIsValid(newPath, 1)) newPath = null;
+      }
     }
     //generate path which is oriented in x direction
     else if (connectionRoom.GetBottomRight().y >= room.position.y + pathWidth && connectionRoom.position.y + pathWidth <= room.GetBottomRight().y)
@@ -434,12 +438,16 @@ public class Generator : MonoBehaviour
       direction = connectionRoom.position.x - room.position.x < 0 ? -1 : 1;
       int xOffset = direction == -1 ? -1 : room.size.x;
       int distanceOffset = direction == -1 ? connectionRoom.size.x : room.size.x;
+      int length = Mathf.Abs(room.position.x - connectionRoom.position.x) - distanceOffset;
 
-      Vector2Int offset = new Vector2Int(xOffset, yOffset);
-      Vector2Int pathOrigin = room.position + offset;
-
-      newPath = CreatePath(pathOrigin, Mathf.Abs(room.position.x - connectionRoom.position.x) - distanceOffset, direction, 0);
-      if (!PathPositionIsValid(newPath, 0)) newPath = null;
+      //if path length lies within the valid size try to create path
+      if (length >= minPathLength && length <= maxPathLength)
+      {
+        Vector2Int offset = new Vector2Int(xOffset, yOffset);
+        Vector2Int pathOrigin = room.position + offset;
+        newPath = CreatePath(pathOrigin, length, direction, 0);
+        if (!PathPositionIsValid(newPath, 0)) newPath = null;
+      }
     }
 
     //if no connection is possible delete connection
