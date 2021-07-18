@@ -132,7 +132,7 @@ public class Generator : MonoBehaviour
     Room newRoom = GenerateRoom();
 
     //calculate distance offset parameters
-    Vector2Int minOffset = (parentRoom.size * useParentRoomOffset) + (newRoom.size * (useParentRoomOffset ^ 1));
+    Vector2Int minOffset = (parentRoom.GetSize() * useParentRoomOffset) + (newRoom.GetSize() * (useParentRoomOffset ^ 1));
     int randomRoomDistanceOffset = Random.Range(roomDistance.x, roomDistance.y);
     Vector2Int axisOffsetVector = new Vector2Int((randomRoomDistanceOffset + minOffset.x) * (axis ^ 1), (randomRoomDistanceOffset + minOffset.y) * axis);
 
@@ -140,8 +140,8 @@ public class Generator : MonoBehaviour
     Vector2Int newPos = parentRoom.position + direction * axisOffsetVector;
 
     //calculate room side shift
-    int xSideOffset = Random.Range(-newRoom.size.x + pathWidth, parentRoom.size.x - pathWidth) * axis;
-    int ySideOffset = Random.Range(-newRoom.size.y + pathWidth, parentRoom.size.y - pathWidth) * (axis ^ 1);
+    int xSideOffset = Random.Range(-newRoom.GetSize().x + pathWidth, parentRoom.GetSize().x - pathWidth) * axis;
+    int ySideOffset = Random.Range(-newRoom.GetSize().y + pathWidth, parentRoom.GetSize().y - pathWidth) * (axis ^ 1);
     Vector2Int randomSideOffset = new Vector2Int(xSideOffset, ySideOffset);
 
     //calculate final room position
@@ -192,7 +192,7 @@ public class Generator : MonoBehaviour
   {
     Vector2Int pathDirection = new Vector2Int((axis ^ 1), axis) * direction;
     BluePrintRoom bRoom = room as BluePrintRoom;
-    Vector2Int pathStartPoint = pathDirection.x + pathDirection.y < 0 ? path.position : path.position + (path.size - Vector2Int.one) * new Vector2Int(axis ^ 1, axis); 
+    Vector2Int pathStartPoint = pathDirection.x + pathDirection.y < 0 ? path.position : path.position + (path.GetSize() - Vector2Int.one) * new Vector2Int(axis ^ 1, axis); 
 
     bool setPath = false;
     int iterator = 1;
@@ -243,7 +243,7 @@ public class Generator : MonoBehaviour
     Path newPath = new Path(new Vector2Int(xSize, ySize));
     newPath.connectionPoint = pathOrigin;
     //sets the start point of the path so that it always is in the top left corner
-    newPath.position = direction == -1 ? pathOrigin - new Vector2Int((axis ^ 1), axis) * (newPath.size - Vector2Int.one) : pathOrigin;
+    newPath.position = direction == -1 ? pathOrigin - new Vector2Int((axis ^ 1), axis) * (newPath.GetSize() - Vector2Int.one) : pathOrigin;
     return newPath;
   }
 
@@ -261,9 +261,9 @@ public class Generator : MonoBehaviour
 
   void SaveRoomToBitMatrix(Room room)
   {
-    for (int i = room.position.x; i < room.position.x + room.size.x; i++)
+    for (int i = room.position.x; i < room.position.x + room.GetSize().x; i++)
     {
-      for (int j = room.position.y; j < room.position.y + room.size.y; j++)
+      for (int j = room.position.y; j < room.position.y + room.GetSize().y; j++)
       {
         if (room is BluePrintRoom)
         {
@@ -277,9 +277,9 @@ public class Generator : MonoBehaviour
   void SavePathToBitMatrix(Path path)
   {
     //iterate over all path tiles
-    for (int i = 0; i < path.size.x; i++)
+    for (int i = 0; i < path.GetSize().x; i++)
     {
-      for (int j = 0; j < path.size.y; j++)
+      for (int j = 0; j < path.GetSize().y; j++)
       {
         Vector2Int pathTileIndex = path.position + new Vector2Int(i, j);
 
@@ -317,16 +317,16 @@ public class Generator : MonoBehaviour
   private Path GetPathAtPosition(Vector2Int gridPos)
   {
     return paths.Find(i => (i.position.x <= gridPos.x
-                        && (i.position + i.size).x >= gridPos.x
+                        && (i.position + i.GetSize()).x >= gridPos.x
                         && i.position.y <= gridPos.y
-                        && (i.position + i.size).y >= gridPos.y));
+                        && (i.position + i.GetSize()).y >= gridPos.y));
   }
 
   bool RoomPositionIsValid(Room room)
   {
     //check if room position is within the allowed grid zone
-    if (room.position.x < shapeArea.x + 1 || room.position.x + room.size.x > shapeArea.y) return false;
-    if (room.position.y < 1 || room.position.y + room.size.y > roomMatrix.size - 1) return false;
+    if (room.position.x < shapeArea.x + 1 || room.position.x + room.GetSize().x > shapeArea.y) return false;
+    if (room.position.y < 1 || room.position.y + room.GetSize().y > roomMatrix.size - 1) return false;
 
     if (!EnoughSpaceForRoomPlacement(room)) return false;
 
@@ -338,7 +338,7 @@ public class Generator : MonoBehaviour
   validation space is one block wider than the path size itself to avoid contact points */
   bool PathPositionIsValid(Path path, int axis)
   {
-    int length = axis == 0 ? path.size.x : path.size.y;
+    int length = axis == 0 ? path.GetSize().x : path.GetSize().y;
     for (int i = 0; i < length; i++)
     {
       for (int j = -1; j < pathWidth + 1; j++)
@@ -363,9 +363,9 @@ public class Generator : MonoBehaviour
   validation space is one block wider than the room size itself to avoid contact points */
   private bool EnoughSpaceForRoomPlacement(Room room)
   {
-    for (int i = room.position.x - 1; i < room.position.x + room.size.x + 1; i++)
+    for (int i = room.position.x - 1; i < room.position.x + room.GetSize().x + 1; i++)
     {
-      for (int j = room.position.y - 1; j < room.position.y + room.size.y + 1; j++)
+      for (int j = room.position.y - 1; j < room.position.y + room.GetSize().y + 1; j++)
       {
         if (i < shapeArea.x || i >= shapeArea.y || j < 0 || j >= roomMatrix.size) continue;
         //if (room is BluePrintRoom && (room as BluePrintRoom).GetBlueprintPixel(i - room.position.x + 1, j - room.position.y + 1) != Color.black) continue;
@@ -410,12 +410,12 @@ public class Generator : MonoBehaviour
     {
       axis = 1;
       int minXOffset = Mathf.Max(0, connectionRoom.position.x - room.position.x);
-      int maxXOffset = Mathf.Min(room.size.x - pathWidth, connectionRoom.GetBottomRight().x - room.position.x - pathWidth);
+      int maxXOffset = Mathf.Min(room.GetSize().x - pathWidth, connectionRoom.GetBottomRight().x - room.position.x - pathWidth);
       int xOffset = UnityEngine.Random.Range(minXOffset, maxXOffset);
 
       direction = connectionRoom.position.y - room.position.y < 0 ? -1 : 1;
-      int yOffset = direction == -1 ? -1 : room.size.y;
-      int distanceOffset = direction == -1 ? connectionRoom.size.y : room.size.y;
+      int yOffset = direction == -1 ? -1 : room.GetSize().y;
+      int distanceOffset = direction == -1 ? connectionRoom.GetSize().y : room.GetSize().y;
       int length = Mathf.Abs(room.position.y - connectionRoom.position.y) - distanceOffset;
 
       //if path length lies within the valid size try to create path
@@ -432,12 +432,12 @@ public class Generator : MonoBehaviour
     {
       axis = 0;
       int minYOffset = Mathf.Max(0, connectionRoom.position.y - room.position.y);
-      int maxYOffset = Mathf.Min(room.size.y - pathWidth, connectionRoom.GetBottomRight().y - room.position.y - pathWidth);
+      int maxYOffset = Mathf.Min(room.GetSize().y - pathWidth, connectionRoom.GetBottomRight().y - room.position.y - pathWidth);
       int yOffset = UnityEngine.Random.Range(minYOffset, maxYOffset);
 
       direction = connectionRoom.position.x - room.position.x < 0 ? -1 : 1;
-      int xOffset = direction == -1 ? -1 : room.size.x;
-      int distanceOffset = direction == -1 ? connectionRoom.size.x : room.size.x;
+      int xOffset = direction == -1 ? -1 : room.GetSize().x;
+      int distanceOffset = direction == -1 ? connectionRoom.GetSize().x : room.GetSize().x;
       int length = Mathf.Abs(room.position.x - connectionRoom.position.x) - distanceOffset;
 
       //if path length lies within the valid size try to create path
@@ -573,10 +573,10 @@ public class Generator : MonoBehaviour
     // Graphics.CopyTexture(columnBluePrint, workingCopy)
     foreach (Room room in roomsGraph.nodes)
     {
-      if (room.size.x < columnBluePrint.height || room.size.y < columnBluePrint.height) continue;
-      //if (room.size.x % 2 == 1 || room.size.y % 2 == 1) continue;
+      if (room.GetSize().x < columnBluePrint.height || room.GetSize().y < columnBluePrint.height) continue;
+      //if (room.GetSize().x % 2 == 1 || room.GetSize().y % 2 == 1) continue;
       if (Random.value > columnProbability) continue;
-      //columnBluePrint.Resize(room.size.x, room.size.y);
+      //columnBluePrint.Resize(room.GetSize().x, room.GetSize().y);
       for (int i = 0; i < columnBluePrint.width; i++)
       {
         for (int j = 0; j < columnBluePrint.height; j++)
@@ -584,8 +584,8 @@ public class Generator : MonoBehaviour
           if (columnBluePrint.GetPixel(i, j) == Color.white) continue;
           else
           {
-            int x = (int)Mathf.Round((float)(room.size.x * j) / (columnBluePrint.width) + (j * 0.1f));
-            int y = (int)Mathf.Round((float)(room.size.y * i) / (columnBluePrint.height) + (i * 0.1f));
+            int x = (int)Mathf.Round((float)(room.GetSize().x * j) / (columnBluePrint.width) + (j * 0.1f));
+            int y = (int)Mathf.Round((float)(room.GetSize().y * i) / (columnBluePrint.height) + (i * 0.1f));
             Vector2Int position = room.GetBottomLeft() + new Vector2Int(x, -y);
             SetDebugBlock(position);
           }

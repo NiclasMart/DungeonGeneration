@@ -6,8 +6,7 @@ using UnityEngine;
 public class BluePrintRoom : Room
 {
   Texture2D blueprint;
-  float rotation;
-  new public Vector2Int size => GetSize();
+  public float rotation;
 
   public BluePrintRoom(Vector2Int size, Texture2D blueprint) : base(size)
   {
@@ -16,36 +15,28 @@ public class BluePrintRoom : Room
     rotation = UnityEngine.Random.Range(-1, 3) * 90;
   }
 
-  Vector2Int GetSize()
+  public override Vector2Int GetSize()
   {
     return (rotation == 90 || rotation == -90) ? new Vector2Int(base.size.y, base.size.x) : base.size;
   }
 
   public bool GetBlueprintPixel(int x, int y)
   {
-    y = blueprint.height - y - 1;
-    (x, y) = TransformCoordinats(x, y, blueprint.height - 1);
+    y = GetSize().y - y - 1;
+    (x, y) = TransformCoordinats(x, y, GetSize().x - 1, GetSize().y - 1);
     return blueprint.GetPixel(x, y) == Color.black;
   }
 
-  private (int x, int y) TransformCoordinats(float x, float y, float size)
+  private (int x, int y) TransformCoordinats(float x, float y, float sizeX, float sizeY)
   {
     float x2, y2;
-    x -= size / 2f;
-    y -= size / 2f;
+    x -= sizeX / 2f;
+    y -= sizeY / 2f;
     x2 = x * Mathf.Cos(Mathf.Deg2Rad * rotation) - y * Mathf.Sin(Mathf.Deg2Rad * rotation);
     y2 = x * Mathf.Sin(Mathf.Deg2Rad * rotation) + y * Mathf.Cos(Mathf.Deg2Rad * rotation);
-    x2 += size / 2f;
-    y2 += size / 2f;
+    bool swapOffset = (rotation == 90 || rotation == -90);
+    x2 += swapOffset ? sizeY / 2f : sizeX / 2f;
+    y2 += swapOffset ? sizeX / 2f : sizeY / 2f;
     return (Mathf.RoundToInt(x2), Mathf.RoundToInt(y2));
   }
-
-  // public void AdjustRoomOrientation(Vector2Int direction, byte directionIndex)
-  // {
-  //   //rotation of room is already right
-  //   if (freeWays[(int)directionIndex] == 1) return;
-
-
-  // }
-
 }

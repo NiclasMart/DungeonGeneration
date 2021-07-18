@@ -20,6 +20,11 @@ public class Room
     this.position = topCorner;
   }
 
+  virtual public Vector2Int GetSize()
+  {
+    return size;
+  }
+
   public Vector2Int GetCenter()
   {
     return position + (size / 2);
