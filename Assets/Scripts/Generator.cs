@@ -151,7 +151,7 @@ public class Generator : MonoBehaviour
     if (!RoomPositionIsValid(newRoom)) return false;
 
     //calculate path
-    if (randomRoomDistanceOffset != 0)
+    if (randomRoomDistanceOffset != 0 || newRoom is BluePrintRoom || parentRoom is BluePrintRoom)
     {
       //calculate path start position
       int adjustPathOffset = (randomSideOffset.x + randomSideOffset.y) < 0 ? 0 : 1;
@@ -178,12 +178,39 @@ public class Generator : MonoBehaviour
       if (!PathPositionIsValid(newPath, axis)) return false;
 
       //finalizing path generation
+      if (newRoom is BluePrintRoom) FillPathInBlueprintRoom(newRoom, newPath, axis, direction);
+      if (parentRoom is BluePrintRoom) FillPathInBlueprintRoom(parentRoom, newPath, axis, -direction);
       newPath.AddConnections(parentRoom, newRoom);
       SavePathToBitMatrix(newPath);
       paths.Add(newPath);
     }
     SaveNewRoom(parentRoom, newRoom);
     return true;
+  }
+
+  private void FillPathInBlueprintRoom(Room room, Path path, int axis, int direction)
+  {
+    Vector2Int pathDirection = new Vector2Int((axis ^ 1), axis) * direction;
+    BluePrintRoom bRoom = room as BluePrintRoom;
+    Vector2Int pathStartPoint = pathDirection.x + pathDirection.y < 0 ? path.position : path.position + (path.size - Vector2Int.one) * new Vector2Int(axis ^ 1, axis); 
+
+    bool setPath = false;
+    int iterator = 1;
+    do
+    {
+      setPath = false;
+      for (int i = 0; i < pathWidth; i++)
+      {
+        Vector2Int pos = pathStartPoint + pathDirection * iterator + new Vector2Int(axis, axis ^ 1) * i;
+        Vector2Int blueprintIndex = pos - bRoom.position;
+        if (!bRoom.GetBlueprintPixel(blueprintIndex.x, blueprintIndex.y))
+        {
+          pathMatrix.SetValue(pos.x, pos.y, true);
+          setPath = true;
+        }
+      }
+      iterator++;
+    } while (setPath);
   }
 
   Room GenerateRoom()
@@ -214,6 +241,7 @@ public class Generator : MonoBehaviour
     int xSize, ySize;
     (xSize, ySize) = axis == 0 ? (length, pathWidth) : (pathWidth, length);
     Path newPath = new Path(new Vector2Int(xSize, ySize));
+    newPath.connectionPoint = pathOrigin;
     //sets the start point of the path so that it always is in the top left corner
     newPath.position = direction == -1 ? pathOrigin - new Vector2Int((axis ^ 1), axis) * (newPath.size - Vector2Int.one) : pathOrigin;
     return newPath;
@@ -239,7 +267,7 @@ public class Generator : MonoBehaviour
       {
         if (room is BluePrintRoom)
         {
-          if ((room as BluePrintRoom).GetBlueprintPixel(i - room.position.x, j - room.position.y) == Color.black) roomMatrix.SetValue(i, j, true);
+          if ((room as BluePrintRoom).GetBlueprintPixel(i - room.position.x, j - room.position.y)) roomMatrix.SetValue(i, j, true);
         }
         else roomMatrix.SetValue(i, j, true);
       }
@@ -371,58 +399,63 @@ public class Generator : MonoBehaviour
     }
   }
 
-  private void TryConnectingRooms(Room leafNode, Room node)
+  private void TryConnectingRooms(Room room, Room connectionRoom)
   {
-    if (leafNode.connections.Contains(node) || node.connections.Contains(leafNode)) return;
+    if (room.connections.Contains(connectionRoom) || connectionRoom.connections.Contains(room)) return;
 
     Path newPath = null;
-    //generate path ehich is oriented in y direction
-    if (node.GetBottomRight().x >= leafNode.position.x + pathWidth && node.position.x + pathWidth <= leafNode.GetBottomRight().x)
+    int direction = 0, axis = 0;
+    //generate path which is oriented in y direction
+    if (connectionRoom.GetBottomRight().x >= room.position.x + pathWidth && connectionRoom.position.x + pathWidth <= room.GetBottomRight().x)
     {
-      int minXOffset = Mathf.Max(0, node.position.x - leafNode.position.x);
-      int maxXOffset = Mathf.Min(leafNode.size.x - pathWidth, node.GetBottomRight().x - leafNode.position.x - pathWidth);
+      axis = 1;
+      int minXOffset = Mathf.Max(0, connectionRoom.position.x - room.position.x);
+      int maxXOffset = Mathf.Min(room.size.x - pathWidth, connectionRoom.GetBottomRight().x - room.position.x - pathWidth);
       int xOffset = UnityEngine.Random.Range(minXOffset, maxXOffset);
 
-      int direction = node.position.y - leafNode.position.y < 0 ? -1 : 1;
-      int yOffset = direction == -1 ? -1 : leafNode.size.y;
-      int distanceOffset = direction == -1 ? node.size.y : leafNode.size.y;
+      direction = connectionRoom.position.y - room.position.y < 0 ? -1 : 1;
+      int yOffset = direction == -1 ? -1 : room.size.y;
+      int distanceOffset = direction == -1 ? connectionRoom.size.y : room.size.y;
 
       Vector2Int offset = new Vector2Int(xOffset, yOffset);
-      Vector2Int pathOrigin = leafNode.position + offset;
+      Vector2Int pathOrigin = room.position + offset;
 
-      newPath = CreatePath(pathOrigin, Mathf.Abs(leafNode.position.y - node.position.y) - distanceOffset, direction, 1);
+      newPath = CreatePath(pathOrigin, Mathf.Abs(room.position.y - connectionRoom.position.y) - distanceOffset, direction, 1);
       if (!PathPositionIsValid(newPath, 1)) newPath = null;
     }
     //generate path which is oriented in x direction
-    else if (node.GetBottomRight().y >= leafNode.position.y + pathWidth && node.position.y + pathWidth <= leafNode.GetBottomRight().y)
+    else if (connectionRoom.GetBottomRight().y >= room.position.y + pathWidth && connectionRoom.position.y + pathWidth <= room.GetBottomRight().y)
     {
-      int minYOffset = Mathf.Max(0, node.position.y - leafNode.position.y);
-      int maxYOffset = Mathf.Min(leafNode.size.y - pathWidth, node.GetBottomRight().y - leafNode.position.y - pathWidth);
+      axis = 0;
+      int minYOffset = Mathf.Max(0, connectionRoom.position.y - room.position.y);
+      int maxYOffset = Mathf.Min(room.size.y - pathWidth, connectionRoom.GetBottomRight().y - room.position.y - pathWidth);
       int yOffset = UnityEngine.Random.Range(minYOffset, maxYOffset);
 
-      int direction = node.position.x - leafNode.position.x < 0 ? -1 : 1;
-      int xOffset = direction == -1 ? -1 : leafNode.size.x;
-      int distanceOffset = direction == -1 ? node.size.x : leafNode.size.x;
+      direction = connectionRoom.position.x - room.position.x < 0 ? -1 : 1;
+      int xOffset = direction == -1 ? -1 : room.size.x;
+      int distanceOffset = direction == -1 ? connectionRoom.size.x : room.size.x;
 
       Vector2Int offset = new Vector2Int(xOffset, yOffset);
-      Vector2Int pathOrigin = leafNode.position + offset;
+      Vector2Int pathOrigin = room.position + offset;
 
-      newPath = CreatePath(pathOrigin, Mathf.Abs(leafNode.position.x - node.position.x) - distanceOffset, direction, 0);
+      newPath = CreatePath(pathOrigin, Mathf.Abs(room.position.x - connectionRoom.position.x) - distanceOffset, direction, 0);
       if (!PathPositionIsValid(newPath, 0)) newPath = null;
     }
 
     //if no connection is possible delete connection
     if (newPath == null)
     {
-      leafNode.connections.Remove(node);
-      node.connections.Remove(leafNode);
+      room.connections.Remove(connectionRoom);
+      connectionRoom.connections.Remove(room);
       return;
     }
 
     //save created path
-    newPath.AddConnections(leafNode, node);
-    node.AddConnection(leafNode);
-    leafNode.AddConnection(node);
+    if (room is BluePrintRoom) FillPathInBlueprintRoom(room, newPath, axis, -direction);
+    if (connectionRoom is BluePrintRoom) FillPathInBlueprintRoom(connectionRoom, newPath, axis, direction);
+    newPath.AddConnections(room, connectionRoom);
+    connectionRoom.AddConnection(room);
+    room.AddConnection(connectionRoom);
     SavePathToBitMatrix(newPath);
     paths.Add(newPath);
   }

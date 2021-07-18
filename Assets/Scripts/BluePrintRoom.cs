@@ -21,10 +21,11 @@ public class BluePrintRoom : Room
     return (rotation == 90 || rotation == -90) ? new Vector2Int(base.size.y, base.size.x) : base.size;
   }
 
-  public Color GetBlueprintPixel(int x, int y)
+  public bool GetBlueprintPixel(int x, int y)
   {
-    (x, y) = TransformCoordinats(x, y, blueprint.height);
-    return blueprint.GetPixel(x, blueprint.height - y - 1);
+    y = blueprint.height - y - 1;
+    (x, y) = TransformCoordinats(x, y, blueprint.height - 1);
+    return blueprint.GetPixel(x, y) == Color.black;
   }
 
   private (int x, int y) TransformCoordinats(float x, float y, float size)
@@ -36,7 +37,7 @@ public class BluePrintRoom : Room
     y2 = x * Mathf.Sin(Mathf.Deg2Rad * rotation) + y * Mathf.Cos(Mathf.Deg2Rad * rotation);
     x2 += size / 2f;
     y2 += size / 2f;
-    return ((int)x2, (int)y2);
+    return (Mathf.RoundToInt(x2), Mathf.RoundToInt(y2));
   }
 
   // public void AdjustRoomOrientation(Vector2Int direction, byte directionIndex)
