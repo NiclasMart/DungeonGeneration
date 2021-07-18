@@ -3,6 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[System.Serializable]
+public class BluePrintRoomData
+{
+  public Texture2D roomBluePrint;
+  public int frequency = 1;
+}
+
 public class BluePrintRoom : Room
 {
   Texture2D blueprint;

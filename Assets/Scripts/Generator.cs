@@ -16,10 +16,17 @@ public class Generator : MonoBehaviour
   [SerializeField, Range(0, 1)] float shape = 0;
 
   [Header("Room parameters")]
+  [SerializeField] bool useNormalRooms = true;
+  [SerializeField, Min(1)] float normalRoomFrequency = 1f;
   [SerializeField] Vector2Int roomDimensionX = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDimensionY = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDistance = new Vector2Int(0, 10);
-  [SerializeField] Texture2D roomBluePrint;
+  [SerializeField] bool useBlueprintRooms = false;
+  [SerializeField] List<BluePrintRoomData> roomBlueprints;
+
+  [Header("Event Room Parameters")]
+  [SerializeField] int amount;
+  [SerializeField] int minimalDistanceFromStartRoom;
 
   enum RoomPosition { Center, Edge, Random };
   [Header("Path Parameters")]
@@ -28,10 +35,6 @@ public class Generator : MonoBehaviour
   [SerializeField, Min(0)] int minPathLength;
   [SerializeField, Min(1)] int maxPathLength;
   [SerializeField] bool useFullDungeonSize;
-
-  [Header("Event Room Parameters")]
-  [SerializeField] int amount;
-  [SerializeField] int minimalDistanceFromStartRoom;
 
   [Header("Other")]
   [Tooltip("Defines up to which ratio a room is categorized as squared. The value must be larger than 1 ( 1 = square).")]
@@ -52,6 +55,8 @@ public class Generator : MonoBehaviour
   Room startRoom, endRoom;
   int currentRoomCount = 1;
   Vector2Int shapeArea;
+  float normalRoomProbability = 1;
+  List<int> roomLookup = new List<int>();
 
   private void Awake()
   {
@@ -63,10 +68,30 @@ public class Generator : MonoBehaviour
 
     roomMatrix = new BitMatrix(dungeonSize);
     pathMatrix = new BitMatrix(dungeonSize);
-
     roomsGraph = new Graph();
 
-    BluePrintRoom testRoom = new BluePrintRoom(Vector2Int.one, roomBluePrint);
+    BuildRoomLookup();
+  }
+
+  private void BuildRoomLookup()
+  {
+    if (!useBlueprintRooms)
+    {
+      normalRoomProbability = 1;
+      useNormalRooms = true;
+      return;
+    }
+
+    int blueprintRoomFrequency = 0;
+    for (int i = 0; i < roomBlueprints.Count; i++)
+    {
+      blueprintRoomFrequency += roomBlueprints[i].frequency;
+      for (int amount = 0; amount < roomBlueprints[i].frequency; amount++)
+      {
+        roomLookup.Add(i);
+      }
+    }
+    normalRoomProbability = normalRoomFrequency / blueprintRoomFrequency;
   }
 
   private void Start()
@@ -90,7 +115,7 @@ public class Generator : MonoBehaviour
 
   public void StartGeneration()
   {
-    Room newRoom = GenerateRoom(Mathf.Min(roomDimensionX.y, shapeArea.y - dungeonSize / 2));
+    Room newRoom = GenerateRoom();
     newRoom.SetPosition(new Vector2Int(roomMatrix.size / 2, roomMatrix.size / 2));
 
     SetDebugBlock(new Vector2Int(roomMatrix.size / 2, roomMatrix.size / 2));
@@ -192,7 +217,7 @@ public class Generator : MonoBehaviour
   {
     Vector2Int pathDirection = new Vector2Int((axis ^ 1), axis) * direction;
     BluePrintRoom bRoom = room as BluePrintRoom;
-    Vector2Int pathStartPoint = pathDirection.x + pathDirection.y < 0 ? path.position : path.position + (path.GetSize() - Vector2Int.one) * new Vector2Int(axis ^ 1, axis); 
+    Vector2Int pathStartPoint = pathDirection.x + pathDirection.y < 0 ? path.position : path.position + (path.GetSize() - Vector2Int.one) * new Vector2Int(axis ^ 1, axis);
 
     bool setPath = false;
     int iterator = 1;
@@ -216,24 +241,18 @@ public class Generator : MonoBehaviour
   Room GenerateRoom()
   {
     Room newRoom;
-    if (Random.Range(0, 1f) < 0.5f)
-    {
-      newRoom = new BluePrintRoom(Vector2Int.one, roomBluePrint);
-
-    }
-    else
+    if (useNormalRooms && Random.Range(0, 1f) <= normalRoomProbability)
     {
       int sizeX = Random.Range(roomDimensionX.x, roomDimensionX.y);
       int sizeY = Random.Range(roomDimensionY.x, roomDimensionY.y);
       newRoom = new Room(new Vector2Int(sizeX, sizeY));
     }
+    else
+    {
+      int rng = Random.Range(0, roomLookup.Count);
+      newRoom = new BluePrintRoom(Vector2Int.one,  roomBlueprints[roomLookup[rng]].roomBluePrint);
+    }
     return newRoom;
-  }
-  Room GenerateRoom(int xMaxSize)
-  {
-    int sizeX = Random.Range(roomDimensionX.x, xMaxSize);
-    int sizeY = Random.Range(roomDimensionY.x, roomDimensionY.y);
-    return new Room(new Vector2Int(sizeX, sizeY));
   }
 
   private Path CreatePath(Vector2Int pathOrigin, int length, int direction, int axis)
