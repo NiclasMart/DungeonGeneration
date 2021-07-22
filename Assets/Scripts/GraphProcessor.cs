@@ -116,7 +116,7 @@ public class GraphProcessor
     float distance = parentNode.pathDistance + 1;
     foreach (var node in parentNode.connections)
     {
-      if (node.pathDistance < distance) continue;
+      if (node.pathDistance <= distance) continue;
       if (graph.maxDistanceFromOrigin < distance) graph.maxDistanceFromOrigin = (int)distance;
 
       node.pathDistance = distance;
