@@ -53,9 +53,9 @@ public class Generator : MonoBehaviour
   List<Path> paths = new List<Path>();
   List<Room> eventRooms = new List<Room>();
   Room startRoom, endRoom;
-  int currentRoomCount = 1;
+  int currentRoomCount = 1, iterationCount = 0;
   Vector2Int shapeArea;
-  float normalRoomProbability = 1;
+  float normalRoomProbability = 1, compressRestriction;
   List<int> roomLookup = new List<int>();
 
   private void Awake()
@@ -123,6 +123,7 @@ public class Generator : MonoBehaviour
     SaveRoomToBitMatrix(newRoom);
     roomsGraph.AddNode(newRoom);
 
+    iterationCount++;
     GenerateRecursivly(newRoom);
   }
 
@@ -131,7 +132,11 @@ public class Generator : MonoBehaviour
   {
     for (int i = 0; i < 4; i++)
     {
-      if (currentRoomCount >= roomCount) continue;
+      //reduce in first few iterations generated room count if compress factor is high
+      if (iterationCount <= 1 + compressFactor * 7) compressRestriction = Mathf.Max(0, Mathf.Min(1, -0.75f * (compressFactor - 0.1f * (iterationCount - 1)) + 1));
+      else compressRestriction = 1;
+
+      if (currentRoomCount >= roomCount * compressRestriction) continue;
 
       //generate room with path in several attempts
       for (int attempt = 0; attempt < 1 + compressFactor * 20; attempt++)
@@ -250,7 +255,7 @@ public class Generator : MonoBehaviour
     else
     {
       int rng = Random.Range(0, roomLookup.Count);
-      newRoom = new BluePrintRoom(Vector2Int.one,  roomBlueprints[roomLookup[rng]].roomBluePrint);
+      newRoom = new BluePrintRoom(Vector2Int.one, roomBlueprints[roomLookup[rng]].roomBluePrint);
     }
     return newRoom;
   }
@@ -399,13 +404,16 @@ public class Generator : MonoBehaviour
   {
     for (int attempts = 0; attempts < compressFactor * 10; attempts++)
     {
+      iterationCount++;
       //iterate over each room and try to generate additional rooms
       for (int i = 0; i < roomsGraph.Count; i++)
       {
         Room startRoom = roomsGraph[i];
         GenerateRecursivly(startRoom);
+        if (roomsGraph.Count >= compressRestriction * roomCount) break;
       }
     }
+
   }
 
   private void GenerateAdditionalConnections()
@@ -637,7 +645,47 @@ public class Generator : MonoBehaviour
     //calculate debug path
     debugPath = GraphProcessor.GetShortestPathBetweenNodes(roomsGraph, startRoom, endRoom);
 
-    Debug.Log("Path Length: " + (debugPath.Count - 1));
+    Debug.Log("Path Length: " + (debugPath.Count - 1) + " rooms");
+
+    //calculate compression 
+
+    float averageDistance = 0;
+    // foreach (var room in roomsGraph.nodes)
+    // {
+    //   int distance = 0;
+    //   foreach (var otherRoom in roomsGraph.nodes)
+    //   {
+    //     distance += (int)Vector2Int.Distance(room.GetCenter(), otherRoom.GetCenter());
+    //   }
+    //   averageDistance += distance / roomsGraph.Count;
+    // }
+
+    // foreach (var room in roomsGraph.nodes)
+    // {
+    //   SortedSet<float> sortedSet = new SortedSet<float>();
+    //   //int distance = 0;
+    //   foreach (var otherRoom in roomsGraph.nodes)
+    //   {
+    //     int distance = (int)Vector2Int.Distance(room.GetCenter(), otherRoom.GetCenter());
+    //     if (distance == 0) continue;
+    //     if (sortedSet.Count < 1) sortedSet.Add(distance);
+    //     else if (sortedSet.Min > distance)
+    //     {
+    //       sortedSet.Remove(sortedSet.Min);
+    //       sortedSet.Add(distance);
+    //     }
+    //   }
+    //   float subAverageDistance = 0;
+    //   foreach (var elem in sortedSet)
+    //   {
+    //     subAverageDistance += elem;
+    //   }
+    //   averageDistance += subAverageDistance;
+    // }
+    // averageDistance /= roomsGraph.Count;
+
+    // Debug.Log("Average Distance Between Rooms: " + averageDistance + " tiles");
+
   }
 
   void SetDebugBlock(Vector2Int pos)
