@@ -13,6 +13,7 @@ public class Generator : MonoBehaviour
   [SerializeField] int pathWidth = 2;
   [SerializeField, Range(0, 1)] float compressFactor = 0.1f;
   [SerializeField, Range(0, 1)] float connectionDegree = 0.3f;
+  [SerializeField] bool allowPathCrossings = true;
   [SerializeField, Range(0, 1)] float shape = 0;
 
   [Header("Room parameters")]
@@ -55,7 +56,7 @@ public class Generator : MonoBehaviour
   Room startRoom, endRoom;
   int currentRoomCount = 1, iterationCount = 0;
   Vector2Int shapeArea;
-  float normalRoomProbability = 1, compressRestriction;
+  float normalRoomProbability = 1;
   List<int> roomLookup = new List<int>();
 
   private void Awake()
@@ -130,25 +131,22 @@ public class Generator : MonoBehaviour
   Queue<Room> newRoomsQueue = new Queue<Room>();
   void GenerateRecursivly(Room parentRoom)
   {
-    for (int i = 0; i < 4; i++)
+    for (int direction = 0; direction < 4; direction++)
     {
-      //reduce in first few iterations generated room count if compress factor is high
-      if (iterationCount <= 1 + compressFactor * 7) compressRestriction = Mathf.Max(0, Mathf.Min(1, -0.75f * (compressFactor - 0.1f * (iterationCount - 1)) + 1));
-      else compressRestriction = 1;
-
-      if (currentRoomCount >= roomCount * compressRestriction) continue;
+      if (currentRoomCount >= roomCount) continue;
 
       //generate room with path in several attempts
       for (int attempt = 0; attempt < 1 + compressFactor * 20; attempt++)
       {
-        if (Generate(parentRoom, i)) break;
+        if (Generate(parentRoom, direction)) break;
       }
     }
 
     //call generation recursively for each generated room
     while (newRoomsQueue.Count > 0)
     {
-      GenerateRecursivly(newRoomsQueue.Dequeue());
+      if (Random.Range(0, 1f) < 0.3f) GenerateRecursivly(newRoomsQueue.ToArray()[Random.Range(0, newRoomsQueue.Count)]);
+      else GenerateRecursivly(newRoomsQueue.Dequeue());
     }
   }
 
@@ -374,6 +372,7 @@ public class Generator : MonoBehaviour
         //decide whether path crossing is allowed depending on the connection degree
         if (pathMatrix.GetValue(pathTileIndex.x, pathTileIndex.y))
         {
+          if (!allowPathCrossings) return false;
           bool crossingAllowed = Random.Range(0, 1f) < connectionDegree;
           if (!crossingAllowed) return false;
         }
@@ -402,6 +401,7 @@ public class Generator : MonoBehaviour
 
   private void StartIterativeImproving()
   {
+    if (roomsGraph.Count >= roomCount) return;
     for (int attempts = 0; attempts < compressFactor * 10; attempts++)
     {
       iterationCount++;
@@ -410,14 +410,14 @@ public class Generator : MonoBehaviour
       {
         Room startRoom = roomsGraph[i];
         GenerateRecursivly(startRoom);
-        if (roomsGraph.Count >= compressRestriction * roomCount) break;
+        if (roomsGraph.Count >= roomCount) return;
       }
     }
-
   }
 
   private void GenerateAdditionalConnections()
   {
+    if (connectionDegree == 0) return;
     List<Room[]> roomTuples = GraphProcessor.GenerateAdditionalConnections(roomsGraph, roomDistance.y, connectionDegree);
 
     foreach (var tuple in roomTuples)

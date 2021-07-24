@@ -25,7 +25,7 @@ public class GraphProcessor
   private static bool NodesCloseEnought(int radius, Room leafNode, Room node)
   {
     float centerDistance = Vector2Int.Distance(node.GetCenter(), leafNode.GetCenter());
-    float nodeSpace = (node.GetSize() + leafNode.GetSize() / 2).magnitude;
+    float nodeSpace = ((node.GetSize() + leafNode.GetSize()) / 2).magnitude;
     return centerDistance - nodeSpace < radius;
   }
 
