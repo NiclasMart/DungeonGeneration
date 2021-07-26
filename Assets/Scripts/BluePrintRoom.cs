@@ -7,7 +7,7 @@ using UnityEngine;
 public class BluePrintRoomData
 {
   public Texture2D roomBluePrint;
-  public int frequency = 1;
+  [Min(0)] public int frequency = 1;
 }
 
 public class BluePrintRoom : Room

@@ -44,8 +44,9 @@ public class Generator : MonoBehaviour
   [SerializeField] Texture2D columnBluePrint;
 
   [Header("Tile Prefabs")]
-  [SerializeField] GameObject groundPrefab;
-  [SerializeField] GameObject wallPrefab;
+  [SerializeField] TileSet tileSet;
+  [SerializeField] bool generateCeiling = false;
+  [SerializeField, Min(0)] int height = 1;
   [SerializeField] GameObject debugCube;
   [SerializeField] bool generateColumns = true;
 
@@ -124,7 +125,6 @@ public class Generator : MonoBehaviour
     SaveRoomToBitMatrix(newRoom);
     roomsGraph.AddNode(newRoom);
 
-    iterationCount++;
     GenerateRecursivly(newRoom);
   }
 
@@ -404,7 +404,6 @@ public class Generator : MonoBehaviour
     if (roomsGraph.Count >= roomCount) return;
     for (int attempts = 0; attempts < compressFactor * 10; attempts++)
     {
-      iterationCount++;
       //iterate over each room and try to generate additional rooms
       for (int i = 0; i < roomsGraph.Count; i++)
       {
@@ -495,49 +494,6 @@ public class Generator : MonoBehaviour
     paths.Add(newPath);
   }
 
-  //iterates over filled matrix and places tiles accordingly into the world
-  public void PlaceTiles()
-  {
-    BitMatrix combinedMatrix = roomMatrix + pathMatrix;
-    for (int i = 1; i < combinedMatrix.size - 1; i++)
-    {
-      for (int j = 1; j < combinedMatrix.size - 1; j++)
-      {
-        if (combinedMatrix.GetValue(i, j))
-        {
-          Instantiate(groundPrefab, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
-          CheckForWallPlacement(i, j);
-        }
-      }
-    }
-  }
-
-  void CheckForWallPlacement(int x, int y)
-  {
-    if (!roomMatrix.GetValue(x, y - 1))
-    {
-      PlaceWall(x * tileSize, y * tileSize - tileSize / 2, x, y);
-    }
-    if (!roomMatrix.GetValue(x - 1, y))
-    {
-      PlaceWall(x * tileSize - tileSize / 2, y * tileSize, x, y);
-    }
-    if (!roomMatrix.GetValue(x + 1, y))
-    {
-      PlaceWall(x * tileSize + tileSize / 2, y * tileSize, x, y);
-    }
-    if (!roomMatrix.GetValue(x, y + 1))
-    {
-      PlaceWall(x * tileSize, y * tileSize + tileSize / 2, x, y);
-    }
-  }
-
-  void PlaceWall(int x, int y, int directionX, int directionY)
-  {
-    GameObject wall = Instantiate(wallPrefab, new Vector3(y, 0, x), Quaternion.identity);
-    wall.transform.LookAt(new Vector3(directionY * tileSize, 0, directionX * tileSize));
-  }
-
   Room[] outerRooms;
   List<Room> edgeRooms;
   private void GeneratePath()
@@ -593,6 +549,73 @@ public class Generator : MonoBehaviour
         return roomsGraph[Random.Range(0, roomsGraph.Count)];
     }
   }
+
+  //iterates over filled matrix and places tiles accordingly into the world
+  public void PlaceTiles()
+  {
+    BitMatrix combinedMatrix = roomMatrix + pathMatrix;
+    tileSet.Initialize();
+    for (int i = 1; i < combinedMatrix.size - 1; i++)
+    {
+      for (int j = 1; j < combinedMatrix.size - 1; j++)
+      {
+        //place floor tiles
+        if (roomMatrix.GetValue(i, j))
+        {
+          GameObject floorTile = tileSet.GetFloorTile();
+          GameObject roomFloor = Instantiate(floorTile, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
+        }
+        //place path tiles
+        else if (pathMatrix.GetValue(i, j))
+        {
+          GameObject pathTile = tileSet.GetPathTiles();
+          GameObject pathFloor = Instantiate(pathTile, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
+        }
+        // place wall tiles and ceiling if enabled
+        if (combinedMatrix.GetValue(i, j))
+        {
+          for (int wallHeight = 0; wallHeight < height; wallHeight++)
+          {
+            CheckForWallPlacement(i, j, wallHeight);
+          }
+          if (generateCeiling)
+          {
+            GameObject ceilingTile = tileSet.GetCeilingTile();
+            GameObject ceiling = Instantiate(ceilingTile, new Vector3(j * tileSize, height * tileSize, i * tileSize), Quaternion.AngleAxis(180, Vector3.forward));
+          }
+        }
+      }
+    }
+  }
+
+  void CheckForWallPlacement(int x, int y, int heightPos)
+  {
+    if (!roomMatrix.GetValue(x, y - 1))
+    {
+      PlaceWall(x * tileSize, y * tileSize - tileSize / 2, x, y, heightPos);
+    }
+    if (!roomMatrix.GetValue(x - 1, y))
+    {
+      PlaceWall(x * tileSize - tileSize / 2, y * tileSize, x, y, heightPos);
+    }
+    if (!roomMatrix.GetValue(x + 1, y))
+    {
+      PlaceWall(x * tileSize + tileSize / 2, y * tileSize, x, y, heightPos);
+    }
+    if (!roomMatrix.GetValue(x, y + 1))
+    {
+      PlaceWall(x * tileSize, y * tileSize + tileSize / 2, x, y, heightPos);
+    }
+  }
+
+  void PlaceWall(int x, int y, int directionX, int directionY, int heightPos)
+  {
+    GameObject wallTile = tileSet.GetWallTile();
+    GameObject wall = Instantiate(wallTile, new Vector3(y, heightPos * tileSize, x), Quaternion.identity);
+    wall.transform.LookAt(new Vector3(directionY * tileSize, heightPos * tileSize, directionX * tileSize));
+  }
+
+
 
   private void GenerateColumns()
   {
@@ -704,7 +727,7 @@ public class Generator : MonoBehaviour
     DrawDungeonTree();
     DrawShapeArea();
     DrawPath();
-    DrawEventRooms();
+    //DrawEventRooms();
   }
 
   private void DrawEventRooms()

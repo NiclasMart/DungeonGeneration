@@ -3,18 +3,18 @@ using UnityEngine;
 
 public class GraphProcessor
 {
-  public static List<Room[]> GenerateAdditionalConnections(Graph graph, int radius, float probability)
+  public static List<Room[]> GenerateAdditionalConnections(Graph graph, int radius, float connectionDegree)
   {
     List<Room[]> newRoomConnections = new List<Room[]>();
     foreach (var leafNode in graph.nodes)
     {
-      if (leafNode.connections.Count > Mathf.Floor(1 + 3 * probability)) continue;
+      if (leafNode.connections.Count > Mathf.Floor(1 + 3 * connectionDegree)) continue;
 
       foreach (var node in graph.nodes)
       {
         if (node == leafNode || leafNode.connections[0] == node) continue;
         if (!NodesCloseEnought(radius, leafNode, node)) continue;
-        if (UnityEngine.Random.Range(0, 1f) > probability) continue;
+        if (UnityEngine.Random.Range(0, 1f) > connectionDegree) continue;
 
         newRoomConnections.Add(new Room[] { leafNode, node });
       }
@@ -187,6 +187,7 @@ public class GraphProcessor
     {
       if (nodeMustLieOnEdge && !node.isEdgeRoom) continue;
       if (node.pathDistance >= minPathLength && node.pathDistance <= maxPathLength) validCanidates.Add(node);
+      else if (nodeMustLieOnEdge && validCanidates.Count == 0) validCanidates.Add(node);
     }
 
     return validCanidates[Random.Range(0, validCanidates.Count)];
