@@ -44,7 +44,7 @@ public class Generator : MonoBehaviour
   [SerializeField] Texture2D columnBluePrint;
 
   [Header("Tile Prefabs")]
-  [SerializeField] TileSet tileSet;
+  [SerializeField] TileSetTable tileSetTable;
   [SerializeField] bool generateCeiling = false;
   [SerializeField, Min(0)] int height = 1;
   [SerializeField] GameObject debugCube;
@@ -554,65 +554,85 @@ public class Generator : MonoBehaviour
   public void PlaceTiles()
   {
     BitMatrix combinedMatrix = roomMatrix + pathMatrix;
-    tileSet.Initialize();
-    for (int i = 1; i < combinedMatrix.size - 1; i++)
+    tileSetTable.Initialize();
+
+    foreach (var room in roomsGraph.nodes)
     {
-      for (int j = 1; j < combinedMatrix.size - 1; j++)
+      TileSet tileSet = tileSetTable.GetRoomSet();
+      for (int i = room.position.x; i < room.position.x + room.GetSize().x; i++)
       {
-        //place floor tiles
-        if (roomMatrix.GetValue(i, j))
+        for (int j = room.position.y; j < room.position.y + room.GetSize().y; j++)
         {
+          if (room is BluePrintRoom && !(room as BluePrintRoom).GetBlueprintPixel(i - room.position.x, j - room.position.y)) continue;
+
+          CheckForWallPlacement(i, j, tileSet);
+
           GameObject floorTile = tileSet.GetFloorTile();
-          GameObject roomFloor = Instantiate(floorTile, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
-        }
-        //place path tiles
-        else if (pathMatrix.GetValue(i, j))
-        {
-          GameObject pathTile = tileSet.GetPathTiles();
-          GameObject pathFloor = Instantiate(pathTile, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
-        }
-        // place wall tiles and ceiling if enabled
-        if (combinedMatrix.GetValue(i, j))
-        {
-          for (int wallHeight = 0; wallHeight < height; wallHeight++)
-          {
-            CheckForWallPlacement(i, j, wallHeight);
-          }
-          if (generateCeiling)
-          {
-            GameObject ceilingTile = tileSet.GetCeilingTile();
-            GameObject ceiling = Instantiate(ceilingTile, new Vector3(j * tileSize, height * tileSize, i * tileSize), Quaternion.AngleAxis(180, Vector3.forward));
-          }
+          Instantiate(floorTile, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
         }
       }
     }
+    // for (int i = 1; i < combinedMatrix.size - 1; i++)
+    // {
+    //   for (int j = 1; j < combinedMatrix.size - 1; j++)
+    //   {
+    //     //place floor tiles
+    //     if (roomMatrix.GetValue(i, j))
+    //     {
+    //       GameObject floorTile = tileSet.GetFloorTile();
+    //       GameObject roomFloor = Instantiate(floorTile, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
+    //     }
+    //     //place path tiles
+    //     else if (pathMatrix.GetValue(i, j))
+    //     {
+    //       GameObject pathTile = tileSet.GetPathTiles();
+    //       GameObject pathFloor = Instantiate(pathTile, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
+    //     }
+    //     // place wall tiles and ceiling if enabled
+    //     if (combinedMatrix.GetValue(i, j))
+    //     {
+    //       for (int wallHeight = 0; wallHeight < height; wallHeight++)
+    //       {
+    //         CheckForWallPlacement(i, j, wallHeight);
+    //       }
+    //       if (generateCeiling)
+    //       {
+    //         GameObject ceilingTile = tileSet.GetCeilingTile();
+    //         GameObject ceiling = Instantiate(ceilingTile, new Vector3(j * tileSize, height * tileSize, i * tileSize), Quaternion.AngleAxis(180, Vector3.forward));
+    //       }
+    //     }
+    //   }
+    //}
   }
 
-  void CheckForWallPlacement(int x, int y, int heightPos)
+  void CheckForWallPlacement(int x, int y, TileSet tiles)
   {
     if (!roomMatrix.GetValue(x, y - 1))
     {
-      PlaceWall(x * tileSize, y * tileSize - tileSize / 2, x, y, heightPos);
+      PlaceWall(x * tileSize, y * tileSize - tileSize / 2f, x, y, tiles);
     }
     if (!roomMatrix.GetValue(x - 1, y))
     {
-      PlaceWall(x * tileSize - tileSize / 2, y * tileSize, x, y, heightPos);
+      PlaceWall(x * tileSize - tileSize / 2f, y * tileSize, x, y, tiles);
     }
     if (!roomMatrix.GetValue(x + 1, y))
     {
-      PlaceWall(x * tileSize + tileSize / 2, y * tileSize, x, y, heightPos);
+      PlaceWall(x * tileSize + tileSize / 2f, y * tileSize, x, y, tiles);
     }
     if (!roomMatrix.GetValue(x, y + 1))
     {
-      PlaceWall(x * tileSize, y * tileSize + tileSize / 2, x, y, heightPos);
+      PlaceWall(x * tileSize, y * tileSize + tileSize / 2f, x, y, tiles);
     }
   }
 
-  void PlaceWall(int x, int y, int directionX, int directionY, int heightPos)
+  void PlaceWall(float x, float y, int directionX, int directionY, TileSet tileSet)
   {
-    GameObject wallTile = tileSet.GetWallTile();
-    GameObject wall = Instantiate(wallTile, new Vector3(y, heightPos * tileSize, x), Quaternion.identity);
-    wall.transform.LookAt(new Vector3(directionY * tileSize, heightPos * tileSize, directionX * tileSize));
+    for (int wallHeight = 0; wallHeight < height; wallHeight++)
+    {
+      GameObject wallTile = tileSet.GetWallTile();
+      GameObject wall = Instantiate(wallTile, new Vector3(y, wallHeight * tileSize, x), Quaternion.identity);
+      wall.transform.LookAt(new Vector3(directionY * tileSize, wallHeight * tileSize, directionX * tileSize));
+    }
   }
 
 
@@ -777,8 +797,8 @@ public class Generator : MonoBehaviour
     float leftBorder = dungeonSize / 2 - shapeAreaSize / 2;
     float rightBorder = dungeonSize / 2 + shapeAreaSize / 2;
 
-    Gizmos.DrawLine(new Vector3(-10, 0, 4 * leftBorder), new Vector3(4 * dungeonSize + 10, 0, 4 * leftBorder));
-    Gizmos.DrawLine(new Vector3(-10, 0, 4 * rightBorder), new Vector3(4 * dungeonSize + 10, 0, 4 * rightBorder));
+    Gizmos.DrawLine(new Vector3(-10, 0, tileSize * leftBorder), new Vector3(tileSize * dungeonSize + 10, 0, tileSize * leftBorder));
+    Gizmos.DrawLine(new Vector3(-10, 0, tileSize * rightBorder), new Vector3(tileSize * dungeonSize + 10, 0, tileSize * rightBorder));
   }
 
   private void DrawPath()

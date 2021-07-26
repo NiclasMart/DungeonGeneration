@@ -8,55 +8,61 @@ public class TileSet : ScriptableObject
   [SerializeField] List<Tile> floorTiles = new List<Tile>();
   [SerializeField] List<Tile> wallTiles = new List<Tile>();
   [SerializeField] List<Tile> ceilingTiles = new List<Tile>();
-  [SerializeField] List<Tile> pathTiles = new List<Tile>();
 
-  List<GameObject> floorTile, wallTile, ceilingTile, pathTile;
+  int floorTotalFrequency, wallTotalFrequency, ceilingTotalFrequency;
 
   public void Initialize()
   {
-    floorTile = BuildTileTable(floorTiles);
-    wallTile = BuildTileTable(wallTiles);
-    ceilingTile = BuildTileTable(ceilingTiles);
-    pathTile = BuildTileTable(pathTiles);
+    floorTotalFrequency = wallTotalFrequency = ceilingTotalFrequency = 0;
+    floorTotalFrequency = InitializeTileFrequencies(floorTiles);
+    wallTotalFrequency = InitializeTileFrequencies(wallTiles);
+    ceilingTotalFrequency = InitializeTileFrequencies(ceilingTiles);
   }
 
-  List<GameObject> BuildTileTable(List<Tile> list)
+  int InitializeTileFrequencies(List<Tile> list)
   {
-    List<GameObject> tmpList = new List<GameObject>();
-
-    for (int i = 0; i < list.Count; i++)
+    int frequencySum = 0;
+    foreach (var tile in list)
     {
-      for (int j = 0; j < list[i].frequency; j++)
-      {
-        tmpList.Add(list[i].tile);
-      }
+      frequencySum += tile.frequency;
     }
-
-    return tmpList;
+    return frequencySum;
   }
 
   public GameObject GetFloorTile()
   {
-    int index = Random.Range(0, floorTile.Count);
-    return floorTile[index];
+    int rng = Random.Range(1, floorTotalFrequency + 1);
+    int frequencySum = 0;
+    foreach (var tile in floorTiles)
+    {
+      frequencySum += tile.frequency;
+      if (frequencySum >= rng) return tile.tile;
+    }
+    return null;
   }
 
   public GameObject GetWallTile()
   {
-    int index = Random.Range(0, wallTile.Count);
-    return wallTile[index];
+    int rng = Random.Range(1, wallTotalFrequency + 1);
+    int frequencySum = 0;
+    foreach (var tile in wallTiles)
+    {
+      frequencySum += tile.frequency;
+      if (frequencySum >= rng) return tile.tile;
+    }
+    return null;
   }
 
   public GameObject GetCeilingTile()
   {
-    int index = Random.Range(0, ceilingTile.Count);
-    return ceilingTile[index];
-  }
-
-  public GameObject GetPathTiles()
-  {
-    int index = Random.Range(0, pathTile.Count);
-    return pathTile[index];
+    int rng = Random.Range(1, ceilingTotalFrequency + 1);
+    int frequencySum = 0;
+    foreach (var tile in ceilingTiles)
+    {
+      frequencySum += tile.frequency;
+      if (frequencySum >= rng) return tile.tile;
+    }
+    return null;
   }
 }
 
