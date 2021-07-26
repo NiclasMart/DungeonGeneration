@@ -347,7 +347,7 @@ public class Generator : MonoBehaviour
   bool RoomPositionIsValid(Room room)
   {
     //check if room position is within the allowed grid zone
-    if (room.position.x < shapeArea.x + 1 || room.position.x + room.GetSize().x > shapeArea.y) return false;
+    if (room.position.x < shapeArea.x + 1 || room.position.x + room.GetSize().x > shapeArea.y - 1) return false;
     if (room.position.y < 1 || room.position.y + room.GetSize().y > roomMatrix.size - 1) return false;
 
     if (!EnoughSpaceForRoomPlacement(room)) return false;
@@ -572,37 +572,21 @@ public class Generator : MonoBehaviour
         }
       }
     }
-    // for (int i = 1; i < combinedMatrix.size - 1; i++)
-    // {
-    //   for (int j = 1; j < combinedMatrix.size - 1; j++)
-    //   {
-    //     //place floor tiles
-    //     if (roomMatrix.GetValue(i, j))
-    //     {
-    //       GameObject floorTile = tileSet.GetFloorTile();
-    //       GameObject roomFloor = Instantiate(floorTile, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
-    //     }
-    //     //place path tiles
-    //     else if (pathMatrix.GetValue(i, j))
-    //     {
-    //       GameObject pathTile = tileSet.GetPathTiles();
-    //       GameObject pathFloor = Instantiate(pathTile, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
-    //     }
-    //     // place wall tiles and ceiling if enabled
-    //     if (combinedMatrix.GetValue(i, j))
-    //     {
-    //       for (int wallHeight = 0; wallHeight < height; wallHeight++)
-    //       {
-    //         CheckForWallPlacement(i, j, wallHeight);
-    //       }
-    //       if (generateCeiling)
-    //       {
-    //         GameObject ceilingTile = tileSet.GetCeilingTile();
-    //         GameObject ceiling = Instantiate(ceilingTile, new Vector3(j * tileSize, height * tileSize, i * tileSize), Quaternion.AngleAxis(180, Vector3.forward));
-    //       }
-    //     }
-    //   }
-    //}
+
+    foreach (var path in paths)
+    {
+      TileSet tileSet = tileSetTable.GetPathSet();
+      for (int i = path.position.x; i < path.position.x + path.GetSize().x; i++)
+      {
+        for (int j = path.position.y; j < path.position.y + path.GetSize().y; j++)
+        {
+          CheckForWallPlacement(i, j, tileSet);
+
+          GameObject floorTile = tileSet.GetFloorTile();
+          Instantiate(floorTile, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
+        }
+      }
+    }
   }
 
   void CheckForWallPlacement(int x, int y, TileSet tiles)
