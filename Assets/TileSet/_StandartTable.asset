@@ -10,13 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c4036f5942db446478eb4b874429482f, type: 3}
-  m_Name: StandartTable
+  m_Name: _StandartTable
   m_EditorClassIdentifier: 
   roomSets:
-  - tileSet: {fileID: 11400000, guid: 2125e5045a4f1c74cb20c8262469235e, type: 2}
+  - tileSet: {fileID: 11400000, guid: 5e704c1e6683465479294ed0edace5a0, type: 2}
     frequency: 1
-  - tileSet: {fileID: 11400000, guid: 90d9594b17b079a4b8cf09ffdb0d2ad9, type: 2}
-    frequency: 3
   pathSets:
-  - tileSet: {fileID: 11400000, guid: 2125e5045a4f1c74cb20c8262469235e, type: 2}
+  - tileSet: {fileID: 11400000, guid: 5e704c1e6683465479294ed0edace5a0, type: 2}
     frequency: 1

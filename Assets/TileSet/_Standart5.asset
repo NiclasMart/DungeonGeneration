@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b99ce8fc5ab529d48ae43e3b77f74b38, type: 3}
-  m_Name: Standart
+  m_Name: _Standart5
   m_EditorClassIdentifier: 
   floorTiles:
   - tile: {fileID: 916917378494744782, guid: 98f5378049f9b5745a77677f581b32b1, type: 3}
@@ -19,8 +19,5 @@ MonoBehaviour:
   - tile: {fileID: 7779381877309823848, guid: 2f6c4572e07a60b43b00e1c4f489a806, type: 3}
     frequency: 1
   ceilingTiles:
-  - tile: {fileID: 916917378494744782, guid: 98f5378049f9b5745a77677f581b32b1, type: 3}
-    frequency: 1
-  pathTiles:
   - tile: {fileID: 916917378494744782, guid: 98f5378049f9b5745a77677f581b32b1, type: 3}
     frequency: 1
