@@ -72,15 +72,6 @@ public class Generator : MonoBehaviour
     BuildRoomLookup();
   }
 
-  private bool GetDungeonShapeBlueprintPixel(int x, int y)
-  {
-    if (dungeonShapeBlueprint == null) return false;
-    x = Mathf.FloorToInt(x * dungeonShapeBlueprint.width / dungeonSize);
-    y = Mathf.FloorToInt(y * dungeonShapeBlueprint.height / dungeonSize);
-    y = dungeonShapeBlueprint.height - y - 1;
-    return dungeonShapeBlueprint.GetPixel(x, y) == Color.black;
-  }
-
   private void PreCalculateShapeArea()
   {
     float shapeAreaSize = Mathf.Max(dungeonSize - (shape * dungeonSize), 2 * roomDimensionX.x);
@@ -124,22 +115,59 @@ public class Generator : MonoBehaviour
     if (generateColumns) GenerateColumns();
   }
 
-  private void GenerateSpecialRooms()
-  {
-    eventRooms = GraphProcessor.GetRandomNodesWithDistanceFromOrigin(roomsGraph, startRoom, amount, minimalDistanceFromStartRoom);
-  }
-
   public void StartGeneration()
   {
-    Room newRoom = GenerateRoom();
-    newRoom.SetPosition(new Vector2Int(roomMatrix.size / 2, roomMatrix.size / 2));
+    Vector2Int startPosition = Vector2Int.zero;
+    List<Vector2Int> startPointList = null;
+    
+    if (dungeonShapeBlueprint != null) startPointList = SearchStartPosition();
+    else startPosition = new Vector2Int(roomMatrix.size / 2, roomMatrix.size / 2);
 
-    SetDebugBlock(new Vector2Int(roomMatrix.size / 2, roomMatrix.size / 2));
+    Room newRoom;
+    do
+    {
+      if (dungeonShapeBlueprint != null) startPosition = startPointList[Random.Range(0, startPointList.Count)];
+      newRoom = GenerateRoom();
+      newRoom.SetPosition(startPosition);
+    } while (!RoomPositionIsValid(newRoom));
+
+    SetDebugBlock(new Vector2Int(startPosition.x, startPosition.y));
 
     SaveRoomToBitMatrix(newRoom);
     roomsGraph.AddNode(newRoom);
 
     GenerateRecursivly(newRoom);
+  }
+
+  private List<Vector2Int> SearchStartPosition()
+  {
+    //search for markt starting points within the blueprint and check if blueprint is valid
+    List<Vector2Int> startPoints = new List<Vector2Int>();
+    for (int i = 0; i < dungeonShapeBlueprint.width; i++)
+    {
+      for (int j = 0; j < dungeonShapeBlueprint.height; j++)
+      {
+        Color test = dungeonShapeBlueprint.GetPixel(i, j);
+        if (dungeonShapeBlueprint.GetPixel(i, j) == Color.red)
+        {
+          startPoints.Add(new Vector2Int(i * dungeonSize / dungeonShapeBlueprint.width, (dungeonShapeBlueprint.height - j - 1) * dungeonSize / dungeonShapeBlueprint.height));
+        }
+      }
+    }
+
+    if (startPoints.Count != 0) return startPoints;
+
+    //search for 3 random points if no starting point is markt within the blueprint
+    do
+    {
+      int rngX = Random.Range(0, dungeonShapeBlueprint.width);
+      int rngY = Random.Range(0, dungeonShapeBlueprint.height);
+      if (dungeonShapeBlueprint.GetPixel(rngX, rngY) != Color.black)
+        startPoints.Add(new Vector2Int(rngX * dungeonSize / dungeonShapeBlueprint.width, (dungeonShapeBlueprint.height - rngY - 1) * dungeonSize / dungeonShapeBlueprint.height));
+    } while (startPoints.Count < 3);
+
+    return startPoints;
+
   }
 
   Queue<Room> newRoomsQueue = new Queue<Room>();
@@ -386,6 +414,7 @@ public class Generator : MonoBehaviour
         Vector2Int pathTileIndex = path.position + new Vector2Int((axis ^ 1), axis) * i + new Vector2Int(axis, (axis ^ 1)) * j;
         if (pathTileIndex.x < shapeArea.x || pathTileIndex.x >= shapeArea.y || pathTileIndex.y < 0 || pathTileIndex.y >= pathMatrix.size) continue;
         if (roomMatrix.GetValue(pathTileIndex.x, pathTileIndex.y)) return false;
+        if (GetDungeonShapeBlueprintPixel(pathTileIndex.x, pathTileIndex.y)) return false;
 
         //decide whether path crossing is allowed depending on the connection degree
         if (pathMatrix.GetValue(pathTileIndex.x, pathTileIndex.y))
@@ -416,6 +445,15 @@ public class Generator : MonoBehaviour
       }
     }
     return true;
+  }
+
+  private bool GetDungeonShapeBlueprintPixel(int x, int y)
+  {
+    if (dungeonShapeBlueprint == null) return false;
+    x = Mathf.FloorToInt(x * dungeonShapeBlueprint.width / dungeonSize);
+    y = Mathf.FloorToInt(y * dungeonShapeBlueprint.height / dungeonSize);
+    y = dungeonShapeBlueprint.height - y - 1;
+    return dungeonShapeBlueprint.GetPixel(x, y) == Color.black;
   }
 
   private void StartIterativeImproving()
@@ -567,6 +605,11 @@ public class Generator : MonoBehaviour
       default:
         return roomsGraph[Random.Range(0, roomsGraph.Count)];
     }
+  }
+
+  private void GenerateSpecialRooms()
+  {
+    eventRooms = GraphProcessor.GetRandomNodesWithDistanceFromOrigin(roomsGraph, startRoom, amount, minimalDistanceFromStartRoom);
   }
 
   //iterates over filled matrix and places tiles accordingly into the world

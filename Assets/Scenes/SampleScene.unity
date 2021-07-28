@@ -157,10 +157,10 @@ MonoBehaviour:
   dungeonSize: 200
   roomCount: 100
   pathWidth: 2
-  compressFactor: 0.561
+  compressFactor: 0.778
   allowPathCrossings: 1
-  connectionDegree: 0.593
-  dungeonShapeBlueprint: {fileID: 2800000, guid: b5b11d8311733d44bbed3bcd5c6bd1ef, type: 3}
+  connectionDegree: 1
+  dungeonShapeBlueprint: {fileID: 2800000, guid: 2996e2fc806d89248992765643368f68, type: 3}
   shape: 0
   useNormalRooms: 1
   normalRoomFrequency: 1
@@ -176,10 +176,10 @@ MonoBehaviour:
   amount: 5
   minimalDistanceFromStartRoom: 3
   startRoomPosition: 0
-  endRoomPosition: 1
-  minPathLength: 2
-  maxPathLength: 3
-  useFullDungeonSize: 1
+  endRoomPosition: 2
+  minPathLength: 100
+  maxPathLength: 100
+  useFullDungeonSize: 0
   minColumnRoomSize: 5
   columnProbability: 0.3
   columnBluePrint: {fileID: 2800000, guid: fd71474ada0eb5149aa62d5264838341, type: 3}
@@ -438,8 +438,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 478363878}
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 381.5, y: -229.10449, z: 394}
-  m_LocalScale: {x: 100, y: 1, z: 100}
+  m_LocalPosition: {x: 396.5, y: 2.5, z: 405}
+  m_LocalScale: {x: 80, y: 1, z: 80}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 8
