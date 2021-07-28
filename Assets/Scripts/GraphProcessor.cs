@@ -106,12 +106,12 @@ public class GraphProcessor
     graph.ResetEvaluation();
     originNode.pathDistance = 0;
     originNode.pathParent = null;
-    SimplifiedDijkstraRecursion(graph, originNode);
+    SimplifiedDijkstra(graph, originNode);
     graph.originNode = originNode;
   }
 
   static Queue<Room> callQueue = new Queue<Room>();
-  static void SimplifiedDijkstraRecursion(Graph graph, Room parentNode)
+  static void SimplifiedDijkstra(Graph graph, Room parentNode)
   {
     float distance = parentNode.pathDistance + 1;
     foreach (var node in parentNode.connections)
@@ -126,7 +126,7 @@ public class GraphProcessor
 
     while (callQueue.Count > 0)
     {
-      SimplifiedDijkstraRecursion(graph, callQueue.Dequeue());
+      SimplifiedDijkstra(graph, callQueue.Dequeue());
     }
   }
 

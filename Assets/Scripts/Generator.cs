@@ -224,21 +224,25 @@ public class Generator : MonoBehaviour
 
     bool setPath = false;
     int iterator = 1;
+    Vector2Int pos = Vector2Int.zero, blueprintIndex;
     do
     {
       setPath = false;
       for (int i = 0; i < pathWidth; i++)
       {
-        Vector2Int pos = pathStartPoint + pathDirection * iterator + new Vector2Int(axis, axis ^ 1) * i;
-        Vector2Int blueprintIndex = pos - bRoom.position;
-        if (!bRoom.GetBlueprintPixel(blueprintIndex.x, blueprintIndex.y))
-        {
-          pathMatrix.SetValue(pos.x, pos.y, true);
-          setPath = true;
-        }
+        pos = pathStartPoint + pathDirection * iterator + new Vector2Int(axis, axis ^ 1) * i;
+        blueprintIndex = pos - bRoom.position;
+        if (!bRoom.GetBlueprintPixel(blueprintIndex.x, blueprintIndex.y)) setPath = true;
       }
       iterator++;
     } while (setPath);
+
+    if (pathDirection.x + pathDirection.y < 0)
+    {
+      path.size += new Vector2Int((axis ^ 1), axis) * (iterator - 1);
+      path.SetPosition(path.position + pathDirection * (iterator - 1));
+    }
+    else path.size += (pathDirection * (iterator - 1));
   }
 
   Room GenerateRoom()
@@ -728,7 +732,7 @@ public class Generator : MonoBehaviour
   private void OnDrawGizmos()
   {
     DrawDungeonAreaOutline();
-    DrawDungeonTree();
+    //DrawDungeonTree();
     DrawShapeArea();
     DrawPath();
     //DrawEventRooms();
