@@ -12,8 +12,9 @@ public class Generator : MonoBehaviour
   [SerializeField, Min(1)] int roomCount = 50;
   [SerializeField] int pathWidth = 2;
   [SerializeField, Range(0, 1)] float compressFactor = 0.1f;
-  [SerializeField, Range(0, 1)] float connectionDegree = 0.3f;
   [SerializeField] bool allowPathCrossings = true;
+  [SerializeField, Range(0, 1)] float connectionDegree = 0.3f;
+  [SerializeField] Texture2D dungeonShapeBlueprint;
   [SerializeField, Range(0, 1)] float shape = 0;
 
   [Header("Room parameters")]
@@ -62,17 +63,30 @@ public class Generator : MonoBehaviour
 
   private void Awake()
   {
-    //pre calculate shape area
-    float shapeAreaSize = Mathf.Max(dungeonSize - (shape * dungeonSize), 2 * roomDimensionX.x);
-    float leftBorder = dungeonSize / 2 - shapeAreaSize / 2;
-    float rightBorder = dungeonSize / 2 + shapeAreaSize / 2;
-    shapeArea = new Vector2Int((int)leftBorder, (int)rightBorder);
-
     roomMatrix = new BitMatrix(dungeonSize);
     pathMatrix = new BitMatrix(dungeonSize);
     roomsGraph = new Graph();
 
+    if (dungeonShapeBlueprint != null) shape = 0;
+    PreCalculateShapeArea();
     BuildRoomLookup();
+  }
+
+  private bool GetDungeonShapeBlueprintPixel(int x, int y)
+  {
+    if (dungeonShapeBlueprint == null) return false;
+    x = Mathf.FloorToInt(x * dungeonShapeBlueprint.width / dungeonSize);
+    y = Mathf.FloorToInt(y * dungeonShapeBlueprint.height / dungeonSize);
+    y = dungeonShapeBlueprint.height - y - 1;
+    return dungeonShapeBlueprint.GetPixel(x, y) == Color.black;
+  }
+
+  private void PreCalculateShapeArea()
+  {
+    float shapeAreaSize = Mathf.Max(dungeonSize - (shape * dungeonSize), 2 * roomDimensionX.x);
+    float leftBorder = dungeonSize / 2 - shapeAreaSize / 2;
+    float rightBorder = dungeonSize / 2 + shapeAreaSize / 2;
+    shapeArea = new Vector2Int((int)leftBorder, (int)rightBorder);
   }
 
   private void BuildRoomLookup()
@@ -395,7 +409,8 @@ public class Generator : MonoBehaviour
       for (int j = room.position.y - 1; j < room.position.y + room.GetSize().y + 1; j++)
       {
         if (i < shapeArea.x || i >= shapeArea.y || j < 0 || j >= roomMatrix.size) continue;
-        //if (room is BluePrintRoom && (room as BluePrintRoom).GetBlueprintPixel(i - room.position.x + 1, j - room.position.y + 1) != Color.black) continue;
+        if (room is BluePrintRoom && !(room as BluePrintRoom).GetBlueprintPixel(i - room.position.x + 1, j - room.position.y + 1)) continue;
+        if (GetDungeonShapeBlueprintPixel(i, j)) return false;
         if (roomMatrix.GetValue(i, j)) return false;
         if (pathMatrix.GetValue(i, j)) return false;
       }
@@ -732,11 +747,12 @@ public class Generator : MonoBehaviour
   private void OnDrawGizmos()
   {
     DrawDungeonAreaOutline();
-    //DrawDungeonTree();
+    DrawDungeonTree();
     DrawShapeArea();
     DrawPath();
     //DrawEventRooms();
   }
+
 
   private void DrawEventRooms()
   {
