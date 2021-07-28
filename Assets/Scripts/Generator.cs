@@ -119,7 +119,7 @@ public class Generator : MonoBehaviour
   {
     Vector2Int startPosition = Vector2Int.zero;
     List<Vector2Int> startPointList = null;
-    
+
     if (dungeonShapeBlueprint != null) startPointList = SearchStartPosition();
     else startPosition = new Vector2Int(roomMatrix.size / 2, roomMatrix.size / 2);
 
@@ -433,17 +433,33 @@ public class Generator : MonoBehaviour
   validation space is one block wider than the room size itself to avoid contact points */
   private bool EnoughSpaceForRoomPlacement(Room room)
   {
-    for (int i = room.position.x - 1; i < room.position.x + room.GetSize().x + 1; i++)
+    for (int i = room.position.x; i < room.position.x + room.GetSize().x; i++)
     {
-      for (int j = room.position.y - 1; j < room.position.y + room.GetSize().y + 1; j++)
+      for (int j = room.position.y; j < room.position.y + room.GetSize().y; j++)
       {
-        if (i < shapeArea.x || i >= shapeArea.y || j < 0 || j >= roomMatrix.size) continue;
-        if (room is BluePrintRoom && !(room as BluePrintRoom).GetBlueprintPixel(i - room.position.x + 1, j - room.position.y + 1)) continue;
+        if (i <= shapeArea.x || i >= shapeArea.y - 1 || j <= 0 || j >= roomMatrix.size - 1) continue;
+        if (room is BluePrintRoom && !(room as BluePrintRoom).GetBlueprintPixel(i - room.position.x, j - room.position.y)) continue;
         if (GetDungeonShapeBlueprintPixel(i, j)) return false;
-        if (roomMatrix.GetValue(i, j)) return false;
-        if (pathMatrix.GetValue(i, j)) return false;
+
+        if (!SurroundingAreaIsFree(i, j)) return false;
       }
     }
+    return true;
+  }
+
+  //checks area around position and ensures that no room clips in another
+  private bool SurroundingAreaIsFree(int i, int j)
+  {
+    for (int n = -1; n < 2; n++)
+    {
+      if (roomMatrix.GetValue(i + n, j)) return false;
+      if (pathMatrix.GetValue(i + n, j)) return false;
+    }
+    if (roomMatrix.GetValue(i, j - 1)) return false;
+    if (pathMatrix.GetValue(i, j - 1)) return false;
+    if (roomMatrix.GetValue(i, j + 1)) return false;
+    if (pathMatrix.GetValue(i, j + 1)) return false;
+
     return true;
   }
 
@@ -502,7 +518,7 @@ public class Generator : MonoBehaviour
       int length = Mathf.Abs(room.position.y - connectionRoom.position.y) - distanceOffset;
 
       //if path length lies within the valid size try to create path
-      if (length >= minPathLength && length <= maxPathLength)
+      if (length >= roomDistance.x && length <= roomDistance.y)
       {
         Vector2Int offset = new Vector2Int(xOffset, yOffset);
         Vector2Int pathOrigin = room.position + offset;
@@ -524,7 +540,7 @@ public class Generator : MonoBehaviour
       int length = Mathf.Abs(room.position.x - connectionRoom.position.x) - distanceOffset;
 
       //if path length lies within the valid size try to create path
-      if (length >= minPathLength && length <= maxPathLength)
+      if (length >= roomDistance.x && length <= roomDistance.y)
       {
         Vector2Int offset = new Vector2Int(xOffset, yOffset);
         Vector2Int pathOrigin = room.position + offset;
