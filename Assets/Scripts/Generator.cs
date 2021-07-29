@@ -17,12 +17,12 @@ public class Generator : MonoBehaviour
   [SerializeField] Texture2D dungeonShapeBlueprint;
   [SerializeField, Range(0, 1)] float shape = 0;
 
-  [Header("Room parameters")]
-  [SerializeField] bool useNormalRooms = true;
+  [Header("Room Parameters")]
   [SerializeField, Min(1)] float normalRoomFrequency = 1f;
   [SerializeField] Vector2Int roomDimensionX = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDimensionY = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDistance = new Vector2Int(0, 10);
+  [SerializeField] bool useNormalRooms = true;
   [SerializeField] bool useBlueprintRooms = false;
   [SerializeField] List<BluePrintRoomData> roomBlueprints;
 
@@ -43,13 +43,14 @@ public class Generator : MonoBehaviour
   [SerializeField] float minColumnRoomSize = 5f;
   [SerializeField] float columnProbability = 0.3f;
   [SerializeField] Texture2D columnBluePrint;
+  [SerializeField] bool generateColumns = true;
 
-  [Header("Tile Prefabs")]
+  [Header("Tile Parameters")]
   [SerializeField] TileSetTable tileSetTable;
   [SerializeField] bool generateCeiling = false;
   [SerializeField, Min(0)] int height = 1;
   [SerializeField] GameObject debugCube;
-  [SerializeField] bool generateColumns = true;
+
 
   BitMatrix roomMatrix, pathMatrix;
   Graph roomsGraph;
@@ -101,21 +102,19 @@ public class Generator : MonoBehaviour
     normalRoomProbability = normalRoomFrequency / blueprintRoomFrequency;
   }
 
-  private void Start()
+  public void StartGeneration()
   {
-    StartGeneration();
+    StartStructureGeneration();
     StartIterativeImproving();
     GenerateAdditionalConnections();
     GeneratePath();
     GenerateSpecialRooms();
     PlaceTiles();
 
-    DebugInformation();
-
     if (generateColumns) GenerateColumns();
   }
 
-  public void StartGeneration()
+  private void StartStructureGeneration()
   {
     Vector2Int startPosition = Vector2Int.zero;
     List<Vector2Int> startPointList = null;
@@ -726,14 +725,12 @@ public class Generator : MonoBehaviour
     }
   }
 
-
-
   //---------------------------------------------------------------------------------------------------
   // DEBUG FUNCTIONALITY
   //---------------------------------------------------------------------------------------------------
 
   List<Room> debugPath;
-  private void DebugInformation()
+  public void CalculateDebugInformation()
   {
     float shapeAreaSize = Mathf.Max(dungeonSize - (shape * dungeonSize), 2 * roomDimensionX.x);
     float ratio = dungeonSize / shapeAreaSize;
@@ -803,17 +800,7 @@ public class Generator : MonoBehaviour
     Instantiate(debugCube, new Vector3(y * tileSize, 0, x * tileSize), Quaternion.identity);
   }
 
-  private void OnDrawGizmos()
-  {
-    DrawDungeonAreaOutline();
-    DrawDungeonTree();
-    DrawShapeArea();
-    DrawPath();
-    //DrawEventRooms();
-  }
-
-
-  private void DrawEventRooms()
+  public void DrawEventRooms()
   {
     Gizmos.color = Color.cyan;
     foreach (var room in eventRooms)
@@ -822,7 +809,7 @@ public class Generator : MonoBehaviour
     }
   }
 
-  private void DrawDungeonTree()
+  public void DrawDungeonTree()
   {
     if (roomsGraph == null) return;
 
@@ -837,7 +824,7 @@ public class Generator : MonoBehaviour
     }
   }
 
-  private void DrawDungeonAreaOutline()
+  public void DrawDungeonAreaOutline()
   {
     Gizmos.color = Color.red;
 
@@ -852,7 +839,7 @@ public class Generator : MonoBehaviour
     Gizmos.DrawLine(bottomLeft, Vector3.zero);
   }
 
-  private void DrawShapeArea()
+  public void DrawShapeArea()
   {
     Gizmos.color = Color.green;
 
@@ -864,7 +851,7 @@ public class Generator : MonoBehaviour
     Gizmos.DrawLine(new Vector3(-10, 0, tileSize * rightBorder), new Vector3(tileSize * dungeonSize + 10, 0, tileSize * rightBorder));
   }
 
-  private void DrawPath()
+  public void DrawPath()
   {
     if (debugPath == null) return;
     Gizmos.color = Color.red;

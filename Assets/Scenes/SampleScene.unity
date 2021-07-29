@@ -157,17 +157,17 @@ MonoBehaviour:
   dungeonSize: 200
   roomCount: 100
   pathWidth: 2
-  compressFactor: 0.778
-  allowPathCrossings: 1
-  connectionDegree: 1
+  compressFactor: 0
+  allowPathCrossings: 0
+  connectionDegree: 0
   dungeonShapeBlueprint: {fileID: 0}
-  shape: 0.735
-  useNormalRooms: 1
+  shape: 0
   normalRoomFrequency: 1
   roomDimensionX: {x: 5, y: 15}
   roomDimensionY: {x: 5, y: 15}
   roomDistance: {x: 2, y: 15}
-  useBlueprintRooms: 1
+  useNormalRooms: 1
+  useBlueprintRooms: 0
   roomBlueprints:
   - roomBluePrint: {fileID: 2800000, guid: 4c2ea6514d422f44d8043f3389ec9927, type: 3}
     frequency: 2
@@ -179,15 +179,15 @@ MonoBehaviour:
   endRoomPosition: 2
   minPathLength: 100
   maxPathLength: 100
-  useFullDungeonSize: 0
+  useFullDungeonSize: 1
   minColumnRoomSize: 5
   columnProbability: 0.3
   columnBluePrint: {fileID: 2800000, guid: fd71474ada0eb5149aa62d5264838341, type: 3}
+  generateColumns: 0
   tileSetTable: {fileID: 11400000, guid: ffbb4b2024074384db2bdc1306b66187, type: 2}
   generateCeiling: 0
   height: 1
   debugCube: {fileID: 5155054765403287173, guid: d63f8d55a5f1b59409c69b26355509e4, type: 3}
-  generateColumns: 0
 --- !u!4 &333698602
 Transform:
   m_ObjectHideFlags: 0
@@ -209,14 +209,17 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 333698600}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7378288cefad43747a3fd2b7502accc5, type: 3}
+  m_Script: {fileID: 11500000, guid: 61e1b855b23b7ed42bd6a60ad97313a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  wallPrefab: {fileID: 7779381877309823848, guid: 2f6c4572e07a60b43b00e1c4f489a806, type: 3}
-  groundPrefab: {fileID: 916917378494744782, guid: 98f5378049f9b5745a77677f581b32b1, type: 3}
-  rotaion: 90
+  runAmount: 1
+  showDungeonArea: 1
+  showDungeonTree: 1
+  showShapeArea: 1
+  showPath: 1
+  showEventRooms: 0
 --- !u!1001 &341430368
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -366,7 +369,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!64 &478363879
 MeshCollider:
   m_ObjectHideFlags: 0
