@@ -157,16 +157,16 @@ MonoBehaviour:
   dungeonSize: 200
   roomCount: 100
   pathWidth: 2
-  compressFactor: 0
+  compressFactor: 0.619
   allowPathCrossings: 0
-  connectionDegree: 0
-  dungeonShapeBlueprint: {fileID: 0}
+  connectionDegree: 1
   shape: 0
-  normalRoomFrequency: 1
+  dungeonShapeBlueprint: {fileID: 0}
   roomDimensionX: {x: 5, y: 15}
   roomDimensionY: {x: 5, y: 15}
   roomDistance: {x: 2, y: 15}
   useNormalRooms: 1
+  normalRoomFrequency: 1
   useBlueprintRooms: 0
   roomBlueprints:
   - roomBluePrint: {fileID: 2800000, guid: 4c2ea6514d422f44d8043f3389ec9927, type: 3}
@@ -186,7 +186,7 @@ MonoBehaviour:
   generateColumns: 0
   tileSetTable: {fileID: 11400000, guid: ffbb4b2024074384db2bdc1306b66187, type: 2}
   generateCeiling: 0
-  height: 1
+  dungeonHeight: 1
   debugCube: {fileID: 5155054765403287173, guid: d63f8d55a5f1b59409c69b26355509e4, type: 3}
 --- !u!4 &333698602
 Transform:
@@ -214,7 +214,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61e1b855b23b7ed42bd6a60ad97313a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  runAmount: 1
+  runAmount: 100
   showDungeonArea: 1
   showDungeonTree: 1
   showShapeArea: 1

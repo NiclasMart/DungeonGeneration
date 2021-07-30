@@ -106,11 +106,12 @@ public class GraphProcessor
     graph.ResetEvaluation();
     originNode.pathDistance = 0;
     originNode.pathParent = null;
+    callQueue = new Queue<Room>();
     SimplifiedDijkstra(graph, originNode);
     graph.originNode = originNode;
   }
 
-  static Queue<Room> callQueue = new Queue<Room>();
+  static Queue<Room> callQueue;
   static void SimplifiedDijkstra(Graph graph, Room parentNode)
   {
     float distance = parentNode.pathDistance + 1;

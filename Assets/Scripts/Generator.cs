@@ -14,15 +14,16 @@ public class Generator : MonoBehaviour
   [SerializeField, Range(0, 1)] float compressFactor = 0.1f;
   [SerializeField] bool allowPathCrossings = true;
   [SerializeField, Range(0, 1)] float connectionDegree = 0.3f;
-  [SerializeField] Texture2D dungeonShapeBlueprint;
   [SerializeField, Range(0, 1)] float shape = 0;
+  [SerializeField] Texture2D dungeonShapeBlueprint;
 
   [Header("Room Parameters")]
-  [SerializeField, Min(1)] float normalRoomFrequency = 1f;
+
   [SerializeField] Vector2Int roomDimensionX = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDimensionY = new Vector2Int(5, 10);
   [SerializeField] Vector2Int roomDistance = new Vector2Int(0, 10);
   [SerializeField] bool useNormalRooms = true;
+  [SerializeField, Min(1)] float normalRoomFrequency = 1f;
   [SerializeField] bool useBlueprintRooms = false;
   [SerializeField] List<BluePrintRoomData> roomBlueprints;
 
@@ -48,7 +49,7 @@ public class Generator : MonoBehaviour
   [Header("Tile Parameters")]
   [SerializeField] TileSetTable tileSetTable;
   [SerializeField] bool generateCeiling = false;
-  [SerializeField, Min(0)] int height = 1;
+  [SerializeField, Min(0)] int dungeonHeight = 1;
   [SerializeField] GameObject debugCube;
 
 
@@ -62,7 +63,21 @@ public class Generator : MonoBehaviour
   float normalRoomProbability = 1;
   List<int> roomLookup = new List<int>();
 
-  private void Awake()
+  public void StartGeneration()
+  {
+    Initialize();
+
+    StartStructureGeneration();
+    StartIterativeImproving();
+    GenerateAdditionalConnections();
+    GeneratePath();
+    GenerateSpecialRooms();
+    PlaceTiles();
+
+    if (generateColumns) GenerateColumns();
+  }
+
+  private void Initialize()
   {
     roomMatrix = new BitMatrix(dungeonSize);
     pathMatrix = new BitMatrix(dungeonSize);
@@ -100,18 +115,6 @@ public class Generator : MonoBehaviour
       }
     }
     normalRoomProbability = normalRoomFrequency / blueprintRoomFrequency;
-  }
-
-  public void StartGeneration()
-  {
-    StartStructureGeneration();
-    StartIterativeImproving();
-    GenerateAdditionalConnections();
-    GeneratePath();
-    GenerateSpecialRooms();
-    PlaceTiles();
-
-    if (generateColumns) GenerateColumns();
   }
 
   private void StartStructureGeneration()
@@ -627,10 +630,12 @@ public class Generator : MonoBehaviour
     eventRooms = GraphProcessor.GetRandomNodesWithDistanceFromOrigin(roomsGraph, startRoom, amount, minimalDistanceFromStartRoom);
   }
 
+  GameObject parent;
   //iterates over filled matrix and places tiles accordingly into the world
   public void PlaceTiles()
   {
     BitMatrix combinedMatrix = roomMatrix + pathMatrix;
+    parent = new GameObject("Dungeon");
     tileSetTable.Initialize();
 
     foreach (var room in roomsGraph.nodes)
@@ -645,7 +650,7 @@ public class Generator : MonoBehaviour
           CheckForWallPlacement(i, j, tileSet);
 
           GameObject floorTile = tileSet.GetFloorTile();
-          Instantiate(floorTile, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
+          Instantiate(floorTile, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity, parent.transform);
         }
       }
     }
@@ -660,7 +665,7 @@ public class Generator : MonoBehaviour
           CheckForWallPlacement(i, j, tileSet);
 
           GameObject floorTile = tileSet.GetFloorTile();
-          Instantiate(floorTile, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity);
+          Instantiate(floorTile, new Vector3(j * tileSize, 0, i * tileSize), Quaternion.identity, parent.transform);
         }
       }
     }
@@ -688,10 +693,10 @@ public class Generator : MonoBehaviour
 
   void PlaceWall(float x, float y, int directionX, int directionY, TileSet tileSet)
   {
-    for (int wallHeight = 0; wallHeight < height; wallHeight++)
+    for (int wallHeight = 0; wallHeight < dungeonHeight; wallHeight++)
     {
       GameObject wallTile = tileSet.GetWallTile();
-      GameObject wall = Instantiate(wallTile, new Vector3(y, wallHeight * tileSize, x), Quaternion.identity);
+      GameObject wall = Instantiate(wallTile, new Vector3(y, wallHeight * tileSize, x), Quaternion.identity, parent.transform);
       wall.transform.LookAt(new Vector3(directionY * tileSize, wallHeight * tileSize, directionX * tileSize));
     }
   }
@@ -728,6 +733,18 @@ public class Generator : MonoBehaviour
   //---------------------------------------------------------------------------------------------------
   // DEBUG FUNCTIONALITY
   //---------------------------------------------------------------------------------------------------
+
+  public void Reset()
+  {
+    eventRooms = new List<Room>();
+    startRoom = endRoom = null;
+    paths = new List<Path>();
+    currentRoomCount = 1;
+    iterationCount = 0;
+    normalRoomProbability = 1;
+    roomLookup = new List<int>();
+    Destroy(parent);
+  }
 
   List<Room> debugPath;
   public void CalculateDebugInformation()
