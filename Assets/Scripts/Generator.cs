@@ -301,7 +301,7 @@ public class Generator : MonoBehaviour
     else
     {
       int rng = Random.Range(0, roomLookup.Count);
-      newRoom = new BluePrintRoom(Vector2Int.one, roomBlueprints[roomLookup[rng]].roomBluePrint);
+      newRoom = new BluePrintRoom(Vector2Int.one, roomBlueprints[roomLookup[rng]].roomBluePrint, roomBlueprints[roomLookup[rng]].randomRotaion);
     }
     return newRoom;
   }

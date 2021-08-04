@@ -8,6 +8,7 @@ public class BluePrintRoomData
 {
   public Texture2D roomBluePrint;
   [Min(0)] public int frequency = 1;
+  public bool randomRotaion = true;
 }
 
 public class BluePrintRoom : Room
@@ -15,11 +16,11 @@ public class BluePrintRoom : Room
   Texture2D blueprint;
   public float rotation;
 
-  public BluePrintRoom(Vector2Int size, Texture2D blueprint) : base(size)
+  public BluePrintRoom(Vector2Int size, Texture2D blueprint, bool rotationEnabled) : base(size)
   {
     base.size = new Vector2Int(blueprint.width, blueprint.height);
     this.blueprint = blueprint;
-    rotation = UnityEngine.Random.Range(-1, 3) * 90;
+    if (rotationEnabled) rotation = UnityEngine.Random.Range(-1, 3) * 90;
   }
 
   public override Vector2Int GetSize()
