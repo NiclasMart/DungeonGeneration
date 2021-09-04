@@ -8,7 +8,7 @@ public class Generator : MonoBehaviour
 
   // parameter for dungeon size
   [Header("Dungeon Parameters")]
-  [SerializeField] int dungeonSize = 100;
+  [SerializeField, Min(1)] int dungeonSize = 100;
   [SerializeField, Min(1)] int roomCount = 50;
   [SerializeField] int pathWidth = 2;
   [SerializeField, Range(0, 1)] float compressFactor = 0.1f;
@@ -83,7 +83,11 @@ public class Generator : MonoBehaviour
     pathMatrix = new BitMatrix(dungeonSize);
     roomsGraph = new Graph();
 
-    if (dungeonShapeBlueprint != null) shape = 0;
+    if (dungeonShapeBlueprint != null)
+    {
+      shape = 0;
+
+    }
     PreCalculateShapeArea();
     BuildRoomLookup();
   }
@@ -172,7 +176,7 @@ public class Generator : MonoBehaviour
 
   }
 
-  Queue<Room> newRoomsQueue = new Queue<Room>();
+  List<Room> newRoomsQueue = new List<Room>();
   void GenerateRecursivly(Room parentRoom)
   {
     for (int direction = 0; direction < 4; direction++)
@@ -180,7 +184,7 @@ public class Generator : MonoBehaviour
       if (currentRoomCount >= roomCount) continue;
 
       //generate room with path in several attempts
-      for (int attempt = 0; attempt < 1 + compressFactor * 20; attempt++)
+      for (int attempt = 0; attempt < 1 + (compressFactor + 0.005f) * 10; attempt++)
       {
         if (Generate(parentRoom, direction)) break;
       }
@@ -189,8 +193,10 @@ public class Generator : MonoBehaviour
     //call generation recursively for each generated room
     while (newRoomsQueue.Count > 0)
     {
-      if (Random.Range(0, 1f) < 0.3f) GenerateRecursivly(newRoomsQueue.ToArray()[Random.Range(0, newRoomsQueue.Count)]);
-      else GenerateRecursivly(newRoomsQueue.Dequeue());
+      int index = Random.Range(0, newRoomsQueue.Count);
+      Room nextRoom = newRoomsQueue[index];
+      newRoomsQueue.RemoveAt(index);
+      GenerateRecursivly(nextRoom);
     }
   }
 
@@ -325,7 +331,7 @@ public class Generator : MonoBehaviour
     currentRoomCount++;
     parentRoom.AddConnection(newRoom);
     newRoom.AddConnection(parentRoom);
-    newRoomsQueue.Enqueue(newRoom);
+    newRoomsQueue.Add(newRoom);
     roomsGraph.AddNode(newRoom);
   }
 
@@ -422,7 +428,7 @@ public class Generator : MonoBehaviour
         if (pathMatrix.GetValue(pathTileIndex.x, pathTileIndex.y))
         {
           if (!allowPathCrossings) return false;
-          bool crossingAllowed = Random.Range(0, 1f) < connectionDegree;
+          bool crossingAllowed = Random.Range(0, 1f) < (connectionDegree + connectionDegree / 4);
           if (!crossingAllowed) return false;
         }
       }
@@ -443,25 +449,28 @@ public class Generator : MonoBehaviour
         if (room is BluePrintRoom && !(room as BluePrintRoom).GetBlueprintPixel(i - room.position.x, j - room.position.y)) continue;
         if (GetDungeonShapeBlueprintPixel(i, j)) return false;
 
-        if (!SurroundingAreaIsFree(i, j)) return false;
+        if (!PositionIsFree(i, j)) return false;
+        //check are arround position and check if its free
+        //size of checked area depends on compressFactor
+        float maxSurroundingArea = 5 >= roomDistance.y ? roomDistance.y - 1 : -4 * compressFactor + 5;
+        for (int compress = 1; compress <= maxSurroundingArea; compress++)
+        {
+          if (i == room.position.x && !PositionIsFree(i - compress, j)) return false;
+          if (i == room.GetBottomRight().x && !PositionIsFree(i + compress, j)) return false;
+          if (j == room.position.y && !PositionIsFree(i, j - compress)) return false;
+          if (j == room.GetBottomRight().y && !PositionIsFree(i, j + compress)) return false;
+        }
       }
     }
     return true;
   }
 
   //checks area around position and ensures that no room clips in another
-  private bool SurroundingAreaIsFree(int i, int j)
+  private bool PositionIsFree(int x, int y)
   {
-    for (int n = -1; n < 2; n++)
-    {
-      if (roomMatrix.GetValue(i + n, j)) return false;
-      if (pathMatrix.GetValue(i + n, j)) return false;
-    }
-    if (roomMatrix.GetValue(i, j - 1)) return false;
-    if (pathMatrix.GetValue(i, j - 1)) return false;
-    if (roomMatrix.GetValue(i, j + 1)) return false;
-    if (pathMatrix.GetValue(i, j + 1)) return false;
-
+    if (x < 0 || x > dungeonSize - 1 || y < 0 || y > dungeonSize - 1) return true;
+    if (roomMatrix.GetValue(x, y)) return false;
+    if (pathMatrix.GetValue(x, y)) return false;
     return true;
   }
 
@@ -477,7 +486,7 @@ public class Generator : MonoBehaviour
   private void StartIterativeImproving()
   {
     if (roomsGraph.Count >= roomCount) return;
-    for (int attempts = 0; attempts < compressFactor * 10; attempts++)
+    for (int attempts = 0; attempts < (compressFactor + 0.005f) * 10; attempts++)
     {
       //iterate over each room and try to generate additional rooms
       for (int i = 0; i < roomsGraph.Count; i++)
@@ -600,7 +609,7 @@ public class Generator : MonoBehaviour
       if (startRoomPosition == RoomPosition.Edge || endRoomPosition == RoomPosition.Edge)
         edgeRooms = GraphProcessor.CalculateConvexHull(roomsGraph, outerRooms[0]);
 
-      //calculation is started from the most specific to generic room
+      //calculation is started from the most specific room to the more generic room
       //center > edge > random
       Room calculationOriginRoom = GetRoomForPathGeneration((RoomPosition)Mathf.Min((int)startRoomPosition, (int)endRoomPosition));
       bool endRoomLiesOnEdge = Mathf.Max((int)startRoomPosition, (int)endRoomPosition) == 1;
@@ -765,46 +774,50 @@ public class Generator : MonoBehaviour
     debugPath = GraphProcessor.GetShortestPathBetweenNodes(roomsGraph, startRoom, endRoom);
 
     Debug.Log("Path Length: " + (debugPath.Count - 1) + " rooms");
+  }
 
-    //calculate compression 
+  public int CountDeadEnds()
+  {
+    int count = 0;
 
-    float averageDistance = 0;
-    // foreach (var room in roomsGraph.nodes)
-    // {
-    //   int distance = 0;
-    //   foreach (var otherRoom in roomsGraph.nodes)
-    //   {
-    //     distance += (int)Vector2Int.Distance(room.GetCenter(), otherRoom.GetCenter());
-    //   }
-    //   averageDistance += distance / roomsGraph.Count;
-    // }
+    foreach (var node in roomsGraph.nodes)
+    {
+      if (node.connections.Count == 1)
+      {
+        count++;
+        Room previousNode = node;
+        Room newNode = node.connections[0];
+        while (newNode.connections.Count <= 2)
+        {
+          count++;
+          foreach (var connectingNode in newNode.connections)
+          {
+            if (connectingNode != previousNode)
+            {
+              previousNode = newNode;
+              newNode = connectingNode;
+              break;
+            }
+          }
+        }
+      }
+    }
+    return count;
+  }
 
-    // foreach (var room in roomsGraph.nodes)
-    // {
-    //   SortedSet<float> sortedSet = new SortedSet<float>();
-    //   //int distance = 0;
-    //   foreach (var otherRoom in roomsGraph.nodes)
-    //   {
-    //     int distance = (int)Vector2Int.Distance(room.GetCenter(), otherRoom.GetCenter());
-    //     if (distance == 0) continue;
-    //     if (sortedSet.Count < 1) sortedSet.Add(distance);
-    //     else if (sortedSet.Min > distance)
-    //     {
-    //       sortedSet.Remove(sortedSet.Min);
-    //       sortedSet.Add(distance);
-    //     }
-    //   }
-    //   float subAverageDistance = 0;
-    //   foreach (var elem in sortedSet)
-    //   {
-    //     subAverageDistance += elem;
-    //   }
-    //   averageDistance += subAverageDistance;
-    // }
-    // averageDistance /= roomsGraph.Count;
+  // public int CountPathExits()
+  // {
 
-    // Debug.Log("Average Distance Between Rooms: " + averageDistance + " tiles");
+  // }
 
+  public void IncreaseConnectionDegree()
+  {
+    connectionDegree += 0.1f;
+  }
+
+  public int GetRoomCount()
+  {
+    return currentRoomCount;
   }
 
   void SetDebugBlock(Vector2Int pos)
